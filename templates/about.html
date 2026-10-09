@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About - Library Management System</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+    <!-- Sticky Navigation Bar -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="/" class="brand">
+                <span class="brand-icon">📚</span>
+                <span>LibManager</span>
+            </a>
+            <div class="nav-links">
+                <a href="/" class="nav-item">Dashboard</a>
+                <a href="/help" class="nav-item">Help & FAQ</a>
+                <a href="/about" class="nav-item active">About Project</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container" style="max-width: 850px;">
+
+        <div class="hero-header">
+            <h1 class="hero-title">ℹ️ About Library Management System</h1>
+            <p class="hero-subtitle">Project documentation, technology stack, and quality compliance details.</p>
+        </div>
+
+        <div class="card">
+            <h3 class="card-title">📌 Overview & Objectives</h3>
+            <p style="color: var(--text-secondary); margin-bottom: 1.25rem;">
+                The <b>Library Management System</b> is designed to streamline book indexing, real-time availability tracking, borrowing status toggles, and multi-criteria search filtering for personal and institutional libraries.
+            </p>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+                <div style="background: var(--bg-main); padding: 1rem; border-radius: var(--radius-sm); border: 1px solid var(--border);">
+                    <h4 style="color: var(--primary);">🎯 Quality Goal</h4>
+                    <p style="font-size: 0.9rem; color: var(--text-secondary);"><b>Q10 – Quality Documentation & User Guidance</b>: Standardizing system manuals, API clarity, interactive help, and inline comments.</p>
+                </div>
+                <div style="background: var(--bg-main); padding: 1rem; border-radius: var(--radius-sm); border: 1px solid var(--border);">
+                    <h4 style="color: var(--primary);">🎓 Course Context</h4>
+                    <p style="font-size: 0.9rem; color: var(--text-secondary);"><b>BBAT104 - Fundamentals of TQM</b> (Total Quality Management).</p>
+                </div>
+            </div>
+
+            <h3 class="card-title">🛠️ Technology Stack</h3>
+            <ul style="list-style: none; display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1.5rem;">
+                <li><span class="badge badge-category">Python 3.x</span></li>
+                <li><span class="badge badge-category">Flask 3.x</span></li>
+                <li><span class="badge badge-category">SQLite 3</span></li>
+                <li><span class="badge badge-category">HTML5 & Vanilla CSS3</span></li>
+                <li><span class="badge badge-category">Google Fonts (Plus Jakarta Sans)</span></li>
+            </ul>
+
+            <h3 class="card-title">🌟 Key Quality & UI Features</h3>
+            <ul style="color: var(--text-secondary); padding-left: 1.25rem; line-height: 1.8;">
+                <li>Full CRUD operations (Create, Read, Update, Delete) for book records.</li>
+                <li>Real-time search and multi-dropdown filtering (Category & Status).</li>
+                <li>One-click status toggling between <code>Available</code> and <code>Borrowed</code>.</li>
+                <li>Live metrics dashboard overview (Total, Available, Borrowed, Categories).</li>
+                <li>Responsive layout built with modern glassmorphic aesthetics.</li>
+                <li>Standardized documentation: Interactive README, User Manual, & Knowledge Base.</li>
+            </ul>
+        </div>
+
+        <div style="text-align: center; margin-top: 2rem;">
+            <a href="/" class="btn btn-primary">⬅ Back to Dashboard</a>
+        </div>
+
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>&copy; 2026 Library Management System &bull; Built with Flask & SQLite</p>
+    </footer>
+
+</body>
+</html>

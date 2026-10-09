@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Help & FAQ - Library Management System</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+    <!-- Sticky Navigation Bar -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="/" class="brand">
+                <span class="brand-icon">📚</span>
+                <span>LibManager</span>
+            </a>
+            <div class="nav-links">
+                <a href="/" class="nav-item">Dashboard</a>
+                <a href="/help" class="nav-item active">Help & FAQ</a>
+                <a href="/about" class="nav-item">About Project</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container" style="max-width: 850px;">
+
+        <div class="hero-header">
+            <h1 class="hero-title">❓ Help & Frequently Asked Questions</h1>
+            <p class="hero-subtitle">Find quick answers on managing books, status tracking, search, and system features.</p>
+        </div>
+
+        <div class="card">
+            <h3 class="card-title">📖 Managing Books</h3>
+            
+            <div style="margin-bottom: 1.5rem;">
+                <h4 style="color: var(--primary); margin-bottom: 0.25rem;">1. How do I add a new book to the library?</h4>
+                <p style="color: var(--text-secondary);">
+                    Use the <b>Add New Book</b> form on the left side of the Dashboard. Fill in the Title, Author, Category, and optional initial Status, then click <b>Add Book to Library</b>.
+                </p>
+            </div>
+
+            <div style="margin-bottom: 1.5rem;">
+                <h4 style="color: var(--primary); margin-bottom: 0.25rem;">2. How do I search or filter books?</h4>
+                <p style="color: var(--text-secondary);">
+                    Use the filter bar above the Book List on the Dashboard. You can search keywords in book titles, authors, or categories, or filter specifically by Category and Status.
+                </p>
+            </div>
+
+            <div style="margin-bottom: 1.5rem;">
+                <h4 style="color: var(--primary); margin-bottom: 0.25rem;">3. How do I issue or return a book?</h4>
+                <p style="color: var(--text-secondary);">
+                    In the Book List table, click the <b>Issue</b> button to mark an available book as borrowed, or click <b>Return</b> to mark a borrowed book as available.
+                </p>
+            </div>
+
+            <div style="margin-bottom: 1.5rem;">
+                <h4 style="color: var(--primary); margin-bottom: 0.25rem;">4. How do I edit or delete a book?</h4>
+                <p style="color: var(--text-secondary);">
+                    Click the <b>Edit</b> button in the action column to update title, author, category, or status. Click <b>Delete</b> to permanently remove a book entry.
+                </p>
+            </div>
+
+            <div style="margin-bottom: 0.5rem;">
+                <h4 style="color: var(--primary); margin-bottom: 0.25rem;">5. Where is the data stored?</h4>
+                <p style="color: var(--text-secondary);">
+                    All book records are persistently saved in the local <code>library.db</code> SQLite database file.
+                </p>
+            </div>
+        </div>
+
+        <div style="text-align: center; margin-top: 2rem;">
+            <a href="/" class="btn btn-primary">⬅ Back to Dashboard</a>
+        </div>
+
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>&copy; 2026 Library Management System &bull; Built with Flask & SQLite</p>
+    </footer>
+
+</body>
+</html>

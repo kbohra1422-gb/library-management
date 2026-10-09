@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Library Management System</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+    <!-- Sticky Navigation Bar -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="/" class="brand">
+                <span class="brand-icon">📚</span>
+                <span>LibManager</span>
+            </a>
+            <div class="nav-links">
+                <a href="/" class="nav-item active">Dashboard</a>
+                <a href="/help" class="nav-item">Help & FAQ</a>
+                <a href="/about" class="nav-item">About Project</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-messages">
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">
+                            <span>{{ message }}</span>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <!-- Hero Banner -->
+        <div class="hero-header">
+            <h1 class="hero-title">📚 Library Catalog & Management</h1>
+            <p class="hero-subtitle">Organize, track, borrow, and search your library records in real-time.</p>
+        </div>
+
+        <!-- Dashboard Statistics Cards -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon icon-purple">📚</div>
+                <div class="stat-info">
+                    <h4>Total Books</h4>
+                    <div class="stat-value">{{ stats.total }}</div>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon icon-green">✅</div>
+                <div class="stat-info">
+                    <h4>Available</h4>
+                    <div class="stat-value">{{ stats.available }}</div>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon icon-amber">⏳</div>
+                <div class="stat-info">
+                    <h4>Borrowed</h4>
+                    <div class="stat-value">{{ stats.borrowed }}</div>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon icon-blue">🏷️</div>
+                <div class="stat-info">
+                    <h4>Categories</h4>
+                    <div class="stat-value">{{ stats.categories }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Grid Layout: Add Book Form + Book List -->
+        <div class="grid-layout">
+            
+            <!-- Left Column: Add New Book Form -->
+            <div class="card">
+                <h3 class="card-title">➕ Add New Book</h3>
+                <form action="/add" method="POST">
+                    
+                    <div class="form-group">
+                        <label for="title">Book Title *</label>
+                        <input type="text" id="title" name="title" class="form-control" placeholder="e.g. Clean Code" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="author">Author *</label>
+                        <input type="text" id="author" name="author" class="form-control" placeholder="e.g. Robert C. Martin" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="category">Category *</label>
+                        <input type="text" id="category" name="category" class="form-control" placeholder="e.g. Software Engineering" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="status">Initial Status</label>
+                        <select id="status" name="status" class="form-control">
+                            <option value="Available" selected>Available</option>
+                            <option value="Borrowed">Borrowed</option>
+                        </select>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-block">Add Book to Library</button>
+                </form>
+            </div>
+
+            <!-- Right Column: Filter & Search + Books Table -->
+            <div>
+                
+                <!-- Filter and Search Controls -->
+                <form method="GET" action="/" class="filter-bar">
+                    <input 
+                        type="text" 
+                        name="q" 
+                        value="{{ search_query }}" 
+                        placeholder="🔍 Search title, author, category..." 
+                        class="form-control search-input"
+                    >
+
+                    <select name="category" class="form-control filter-select">
+                        <option value="">All Categories</option>
+                        {% for cat in categories %}
+                            <option value="{{ cat }}" {% if selected_category == cat %}selected{% endif %}>{{ cat }}</option>
+                        {% endfor %}
+                    </select>
+
+                    <select name="status" class="form-control filter-select">
+                        <option value="">All Statuses</option>
+                        <option value="Available" {% if selected_status == 'Available' %}selected{% endif %}>Available</option>
+                        <option value="Borrowed" {% if selected_status == 'Borrowed' %}selected{% endif %}>Borrowed</option>
+                    </select>
+
+                    <button type="submit" class="btn btn-primary">Filter</button>
+                    {% if search_query or selected_category or selected_status %}
+                        <a href="/" class="btn btn-secondary">Reset</a>
+                    {% endif %}
+                </form>
+
+                <!-- Books Table -->
+                <div class="table-responsive">
+                    <table class="custom-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Title</th>
+                                <th>Author</th>
+                                <th>Category</th>
+                                <th>Status</th>
+                                <th style="text-align: right;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if books %}
+                                {% for book in books %}
+                                <tr>
+                                    <td><strong>{{ book.id }}</strong></td>
+                                    <td><strong>{{ book.title }}</strong></td>
+                                    <td>{{ book.author }}</td>
+                                    <td><span class="badge badge-category">{{ book.category }}</span></td>
+                                    <td>
+                                        {% if book.status == 'Available' %}
+                                            <span class="badge badge-available">Available</span>
+                                        {% else %}
+                                            <span class="badge badge-borrowed">Borrowed</span>
+                                        {% endif %}
+                                    </td>
+                                    <td style="text-align: right;">
+                                        <div style="display: flex; gap: 0.35rem; justify-content: flex-end;">
+                                            <a href="/toggle/{{ book.id }}" class="btn btn-sm {% if book.status == 'Available' %}btn-warning{% else %}btn-success{% endif %}" title="Toggle Available/Borrowed">
+                                                {% if book.status == 'Available' %}Issue{% else %}Return{% endif %}
+                                            </a>
+                                            <a href="/edit/{{ book.id }}" class="btn btn-sm btn-secondary" title="Edit Book">Edit</a>
+                                            <a href="/delete/{{ book.id }}" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this book?')" title="Delete Book">Delete</a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="6">
+                                        <div class="empty-state">
+                                            <div class="empty-icon">📖</div>
+                                            <p>No books found matching your criteria.</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>&copy; 2026 Library Management System &bull; Built with Flask & SQLite</p>
+    </footer>
+
+</body>
+</html>
