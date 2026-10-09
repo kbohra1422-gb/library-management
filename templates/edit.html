@@ -19,6 +19,10 @@
                 <a href="/" class="nav-item">Dashboard</a>
                 <a href="/help" class="nav-item">Help & FAQ</a>
                 <a href="/about" class="nav-item">About Project</a>
+                <button type="button" id="theme-toggle" class="theme-btn" onclick="toggleTheme()" title="Toggle Dark / Light Theme">
+                    <span id="theme-icon">🌙</span>
+                    <span id="theme-label">Dark</span>
+                </button>
             </div>
         </div>
     </nav>
@@ -79,5 +83,31 @@
         <p>&copy; 2026 Library Management System &bull; Built with Flask & SQLite</p>
     </footer>
 
+    <script>
+        (function() {
+            const savedTheme = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+            document.documentElement.setAttribute('data-theme', savedTheme);
+        })();
+
+        function updateThemeUI() {
+            const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+            const icon = document.getElementById('theme-icon');
+            const label = document.getElementById('theme-label');
+            if (icon && label) {
+                icon.textContent = currentTheme === 'dark' ? '☀️' : '🌙';
+                label.textContent = currentTheme === 'dark' ? 'Light' : 'Dark';
+            }
+        }
+
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            updateThemeUI();
+        }
+
+        document.addEventListener('DOMContentLoaded', updateThemeUI);
+    </script>
 </body>
 </html>

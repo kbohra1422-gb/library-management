@@ -34,6 +34,25 @@
     --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+[data-theme="dark"] {
+    --bg-main: #0f172a;
+    --surface: #1e293b;
+    --text-primary: #f8fafc;
+    --text-secondary: #cbd5e1;
+    --text-muted: #64748b;
+    --border: #334155;
+
+    --primary-light: rgba(79, 70, 229, 0.25);
+    --success-bg: rgba(16, 185, 129, 0.2);
+    --warning-bg: rgba(245, 158, 11, 0.2);
+    --danger-bg: rgba(239, 68, 68, 0.2);
+    --info-bg: rgba(59, 130, 246, 0.2);
+
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.4);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.5), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.6), 0 4px 6px -2px rgba(0, 0, 0, 0.4);
+}
+
 * {
     box-sizing: border-box;
     margin: 0;
@@ -50,7 +69,7 @@ body {
 
 /* Navigation Bar */
 .navbar {
-    background: rgba(255, 255, 255, 0.85);
+    background: var(--surface);
     backdrop-filter: blur(12px);
     border-bottom: 1px solid var(--border);
     position: sticky;
@@ -103,6 +122,26 @@ body {
 .nav-item.active {
     color: var(--primary);
     background: var(--primary-light);
+}
+
+.theme-btn {
+    background: var(--primary-light);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+    padding: 0.45rem 0.85rem;
+    border-radius: var(--radius-full);
+    cursor: pointer;
+    font-size: 0.875rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    transition: var(--transition);
+}
+
+.theme-btn:hover {
+    transform: scale(1.05);
+    box-shadow: var(--shadow-sm);
 }
 
 /* Container */
@@ -307,7 +346,7 @@ body {
     font-family: inherit;
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);
-    background: #fff;
+    background: var(--surface);
     color: var(--text-primary);
     transition: var(--transition);
 }
@@ -375,13 +414,13 @@ select.form-control {
 }
 
 .btn-secondary {
-    background-color: #f1f5f9;
+    background-color: var(--surface);
     color: var(--text-secondary);
     border: 1px solid var(--border);
 }
 
 .btn-secondary:hover {
-    background-color: #e2e8f0;
+    background-color: var(--primary-light);
     color: var(--text-primary);
 }
 
@@ -440,7 +479,7 @@ select.form-control {
 }
 
 .custom-table th {
-    background: #f8fafc;
+    background: var(--bg-main);
     color: var(--text-secondary);
     font-weight: 600;
     padding: 0.875rem 1rem;
@@ -458,7 +497,7 @@ select.form-control {
 }
 
 .custom-table tbody tr:hover {
-    background-color: #f1f5f9;
+    background-color: var(--primary-light);
 }
 
 /* Badges */
