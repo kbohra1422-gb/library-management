@@ -144,6 +144,7 @@
                     {% if search_query or selected_category or selected_status %}
                         <a href="/" class="btn btn-secondary">Reset</a>
                     {% endif %}
+                    <a href="/export/csv?q={{ search_query }}&category={{ selected_category }}&status={{ selected_status }}" class="btn btn-secondary" title="Export matching books to CSV">📥 Export CSV</a>
                 </form>
 
                 <!-- Books Table -->

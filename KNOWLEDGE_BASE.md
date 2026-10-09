@@ -67,6 +67,7 @@ Using `sqlite3.Row` allows dictionary-style column access (`book["title"]`) with
 | `/edit/<id>` | `GET, POST` | Edit Book | `id` (int URL parameter), `title`, `author`, `category`, `status` | `render_template('edit.html')` / Redirect to `/` |
 | `/toggle/<id>` | `GET` | Toggle Status | `id` (int URL parameter) | Redirect to `/` |
 | `/delete/<id>` | `GET` | Delete Book | `id` (int URL parameter) | Redirect to `/` |
+| `/export/csv` | `GET` | Export CSV Data | `q` (search string), `category` (filter string), `status` (filter string) | CSV File Attachment (`library_books.csv`) |
 | `/help` | `GET` | FAQ View | None | `render_template('help.html')` |
 | `/about` | `GET` | System Info View | None | `render_template('about.html')` |
 

@@ -1,5 +1,7 @@
-from flask import Flask, render_template, request, redirect, url_for, flash
+from flask import Flask, render_template, request, redirect, url_for, flash, Response
 import sqlite3
+import csv
+import io
 
 app = Flask(__name__)
 app.secret_key = "library_secret_key_super_secure"
@@ -184,6 +186,56 @@ def delete_book(id):
 
     conn.close()
     return redirect(url_for("home"))
+
+
+@app.route("/export/csv")
+def export_csv():
+    search_query = request.args.get("q", "").strip()
+    category_filter = request.args.get("category", "").strip()
+    status_filter = request.args.get("status", "").strip()
+
+    conn = get_db_connection()
+    query = "SELECT id, title, author, category, status, created_at FROM books WHERE 1=1"
+    params = []
+
+    if search_query:
+        query += " AND (title LIKE ? OR author LIKE ? OR category LIKE ?)"
+        wildcard = f"%{search_query}%"
+        params.extend([wildcard, wildcard, wildcard])
+
+    if category_filter:
+        query += " AND category = ?"
+        params.append(category_filter)
+
+    if status_filter:
+        query += " AND status = ?"
+        params.append(status_filter)
+
+    query += " ORDER BY id DESC"
+
+    books = conn.execute(query, params).fetchall()
+    conn.close()
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["ID", "Title", "Author", "Category", "Status", "Date Added"])
+
+    for book in books:
+        writer.writerow([
+            book["id"],
+            book["title"],
+            book["author"],
+            book["category"],
+            book["status"],
+            book["created_at"]
+        ])
+
+    output.seek(0)
+    return Response(
+        output.getvalue(),
+        mimetype="text/csv",
+        headers={"Content-Disposition": "attachment; filename=library_books.csv"}
+    )
 
 
 @app.route("/help")

@@ -1,8 +1,9 @@
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import ttk, messagebox, filedialog
 import customtkinter as ctk
 import sqlite3
 import os
+import csv
 
 # Configure CustomTkinter Appearance
 ctk.set_appearance_mode("System")  # Options: "System", "Dark", "Light"
@@ -290,6 +291,15 @@ class LibraryApp(ctk.CTk):
         )
         self.btn_edit.pack(side="left", padx=5)
 
+        self.btn_export = ctk.CTkButton(
+            self.actions_frame,
+            text="📥 Export CSV",
+            fg_color="#10b981",
+            hover_color="#059669",
+            command=self.export_csv_action
+        )
+        self.btn_export.pack(side="left", padx=5)
+
         self.btn_delete = ctk.CTkButton(
             self.actions_frame,
             text="🗑️ Delete Book",
@@ -542,6 +552,60 @@ Key Desktop Features:
         conn.close()
         self.load_categories_filter()
         self.refresh_dashboard()
+
+    def export_csv_action(self):
+        """Exports currently filtered library records to a CSV file."""
+        file_path = filedialog.asksaveasfilename(
+            defaultextension=".csv",
+            filetypes=[("CSV Files", "*.csv"), ("All Files", "*.*")],
+            title="Export Books to CSV",
+            initialfile="library_books.csv"
+        )
+        if not file_path:
+            return
+
+        search_text = self.search_var.get().strip()
+        cat_filter = self.filter_cat_var.get().strip()
+        status_filter = self.filter_status_var.get().strip()
+
+        query = "SELECT id, title, author, category, status, created_at FROM books WHERE 1=1"
+        params = []
+
+        if search_text:
+            query += " AND (title LIKE ? OR author LIKE ? OR category LIKE ?)"
+            wildcard = f"%{search_text}%"
+            params.extend([wildcard, wildcard, wildcard])
+
+        if cat_filter and cat_filter != "All Categories":
+            query += " AND category = ?"
+            params.append(cat_filter)
+
+        if status_filter and status_filter != "All Statuses":
+            query += " AND status = ?"
+            params.append(status_filter)
+
+        query += " ORDER BY id DESC"
+
+        conn = get_db_connection()
+        books = conn.execute(query, params).fetchall()
+        conn.close()
+
+        try:
+            with open(file_path, mode="w", newline="", encoding="utf-8") as f:
+                writer = csv.writer(f)
+                writer.writerow(["ID", "Title", "Author", "Category", "Status", "Date Added"])
+                for book in books:
+                    writer.writerow([
+                        book["id"],
+                        book["title"],
+                        book["author"],
+                        book["category"],
+                        book["status"],
+                        book["created_at"]
+                    ])
+            messagebox.showinfo("Export Successful", f"Successfully exported {len(books)} book record(s) to:\n{file_path}")
+        except Exception as e:
+            messagebox.showerror("Export Failed", f"An error occurred while saving the CSV file:\n{str(e)}")
 
     def edit_book_dialog(self):
         selected = self.tree.selection()
