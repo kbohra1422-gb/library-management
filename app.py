@@ -59,6 +59,17 @@ def init_db():
             FOREIGN KEY (member_id) REFERENCES members(id)
         )
     """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS reservations (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            book_id INTEGER NOT NULL,
+            member_id INTEGER NOT NULL,
+            request_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            status TEXT DEFAULT 'Pending',
+            FOREIGN KEY (book_id) REFERENCES books(id),
+            FOREIGN KEY (member_id) REFERENCES members(id)
+        )
+    """)
 
     cursor = conn.cursor()
     cursor.execute("PRAGMA table_info(books)")
@@ -606,6 +617,61 @@ def borrow_receipt(id):
         return redirect(url_for("borrow_page"))
 
     return render_template("receipt.html", record=record)
+
+
+@app.route("/reservations")
+def reservations_page():
+    conn = get_db_connection()
+    reservations = conn.execute("""
+        SELECT res.id, res.book_id, res.member_id, res.request_date, res.status,
+               b.title as book_title, b.author as book_author, b.status as book_status,
+               m.name as member_name, m.email as member_email
+        FROM reservations res
+        JOIN books b ON res.book_id = b.id
+        JOIN members m ON res.member_id = m.id
+        ORDER BY res.id DESC
+    """).fetchall()
+
+    borrowed_books = conn.execute("SELECT id, title, author FROM books WHERE status = 'Borrowed'").fetchall()
+    members = conn.execute("SELECT id, name FROM members ORDER BY name").fetchall()
+    conn.close()
+
+    return render_template(
+        "reservations.html",
+        reservations=reservations,
+        borrowed_books=borrowed_books,
+        members=members
+    )
+
+
+@app.route("/reservations/create", methods=["POST"])
+def create_reservation():
+    book_id = request.form.get("book_id")
+    member_id = request.form.get("member_id")
+
+    if book_id and member_id:
+        conn = get_db_connection()
+        conn.execute(
+            "INSERT INTO reservations (book_id, member_id, status) VALUES (?, ?, 'Pending')",
+            (book_id, member_id)
+        )
+        conn.commit()
+        conn.close()
+        flash("Reservation request placed successfully!", "success")
+    else:
+        flash("Please select both a book and a member.", "danger")
+
+    return redirect(url_for("reservations_page"))
+
+
+@app.route("/reservations/cancel/<int:id>")
+def cancel_reservation(id):
+    conn = get_db_connection()
+    conn.execute("UPDATE reservations SET status = 'Cancelled' WHERE id = ?", (id,))
+    conn.commit()
+    conn.close()
+    flash("Reservation request cancelled.", "warning")
+    return redirect(url_for("reservations_page"))
 
 
 @app.route("/help")

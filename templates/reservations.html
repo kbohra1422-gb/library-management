@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Book Reservations & Holds - Library System</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+    <!-- Sticky Navigation Bar -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="/" class="brand">
+                <span class="brand-icon">📚</span>
+                <span>LibManager</span>
+            </a>
+            <div class="nav-links">
+                <a href="/" class="nav-item">Books Catalog</a>
+                <a href="/members" class="nav-item">Members</a>
+                <a href="/borrow" class="nav-item">Issue / Return</a>
+                <a href="/reservations" class="nav-item active">Reservations</a>
+                <a href="/analytics" class="nav-item">Analytics</a>
+                <a href="/help" class="nav-item">Help & FAQ</a>
+                <a href="/about" class="nav-item">About</a>
+                <button type="button" id="theme-toggle" class="theme-btn" onclick="toggleTheme()" title="Toggle Dark / Light Theme">
+                    <span id="theme-icon">🌙</span>
+                    <span id="theme-label">Dark</span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-messages">
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">
+                            <span>{{ message }}</span>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <!-- Hero Header -->
+        <div class="hero-header">
+            <h1 class="hero-title">📌 Book Reservations & Hold Queue</h1>
+            <p class="hero-subtitle">Place a hold request for currently borrowed books to be notified when available.</p>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 350px 1fr; gap: 20px; align-items: start;">
+            
+            <!-- Reservation Form Card -->
+            <div class="card">
+                <h3 class="card-title">🔖 Place Hold Request</h3>
+                {% if borrowed_books and members %}
+                    <form action="/reservations/create" method="POST">
+                        <div class="form-group">
+                            <label for="book_id">Select Borrowed Book *</label>
+                            <select id="book_id" name="book_id" class="form-control" required>
+                                <option value="">-- Choose Borrowed Book --</option>
+                                {% for b in borrowed_books %}
+                                    <option value="{{ b.id }}">{{ b.title }} ({{ b.author }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="member_id">Select Member *</label>
+                            <select id="member_id" name="member_id" class="form-control" required>
+                                <option value="">-- Choose Member --</option>
+                                {% for m in members %}
+                                    <option value="{{ m.id }}">{{ m.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-block">Place Reservation</button>
+                    </form>
+                {% else %}
+                    <div style="padding: 15px; background: rgba(0,123,255,0.08); border-radius: 8px;">
+                        <p style="font-size: 0.9em; opacity: 0.85;">⚠️ No books are currently borrowed or no members are available to place reservations.</p>
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Reservations Table Card -->
+            <div class="card">
+                <h3 class="card-title">📋 Pending & Active Holds ({{ reservations|length }})</h3>
+                <div class="table-wrapper">
+                    {% if reservations %}
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Hold ID</th>
+                                    <th>Book Details</th>
+                                    <th>Reserved By</th>
+                                    <th>Date Requested</th>
+                                    <th>Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for r in reservations %}
+                                    <tr>
+                                        <td>#RES-{{ r.id }}</td>
+                                        <td>
+                                            <strong>{{ r.book_title }}</strong>
+                                            <div style="font-size: 0.85em; opacity: 0.8;">{{ r.book_author }}</div>
+                                        </td>
+                                        <td>
+                                            <strong>{{ r.member_name }}</strong>
+                                            <div style="font-size: 0.85em; opacity: 0.8;">{{ r.member_email or 'N/A' }}</div>
+                                        </td>
+                                        <td>{{ r.request_date[:10] if r.request_date else 'N/A' }}</td>
+                                        <td>
+                                            <span class="badge {% if r.status == 'Pending' %}badge-borrowed{% else %}badge-available{% endif %}">
+                                                {{ r.status }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            {% if r.status == 'Pending' %}
+                                                <a href="/reservations/cancel/{{ r.id }}" class="btn btn-sm btn-danger" onclick="return confirm('Cancel this hold request?')">Cancel Hold</a>
+                                            {% else %}
+                                                <span style="font-size: 0.85em; opacity: 0.7;">Completed</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    {% else %}
+                        <div style="padding: 30px; text-align: center; color: var(--text-muted);">
+                            <div style="font-size: 2.5rem; margin-bottom: 8px;">📌</div>
+                            <p>No active reservations or hold requests in queue.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+    <script>
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            updateThemeButton(newTheme);
+        }
+        function updateThemeButton(theme) {
+            const icon = document.getElementById('theme-icon');
+            const label = document.getElementById('theme-label');
+            if (icon && label) {
+                icon.textContent = theme === 'dark' ? '☀️' : '🌙';
+                label.textContent = theme === 'dark' ? 'Light' : 'Dark';
+            }
+        }
+        (function() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            updateThemeButton(savedTheme);
+        })();
+    </script>
+</body>
+</html>
