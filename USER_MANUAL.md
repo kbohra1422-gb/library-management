@@ -1,59 +1,65 @@
-# 📚 Library Management System - User Manual
+# 📚 Library Management System - Comprehensive User Manual
 
-> **User Guide & Operating Instructions**
+> **Complete Guide & Operating Manual**
 
 ---
 
 ## 1. Introduction
 
-Welcome to the **Library Management System**. This user manual guides you through operating the application to manage books, track issue/borrow status, perform searches, and update records.
+Welcome to the **Library Management System**. This user manual guides you through operating both the **Web Portal** (`app.py`) and **Native Desktop GUI** (`main.py`) to manage books, members, borrow/return logs, reservations, star ratings, and analytics.
 
 ---
 
 ## 2. Getting Started
 
-### Step 1: Launching the App
-1. Open your terminal or command prompt in the project root folder `library_management`.
-2. Run the command:
-   ```bash
-   python app.py
-   ```
-3. Open your web browser and navigate to:
-   ```text
-   http://127.0.0.1:5000
-   ```
+### Launching the Web Application (Flask)
+```bash
+python app.py
+```
+Open your web browser and navigate to: `http://127.0.0.1:5000`
+
+### Launching the Desktop Application (CustomTkinter)
+```bash
+python main.py
+```
+Or double-click `run_desktop_app.bat` on Windows.
 
 ---
 
-## 3. Core Features & How To Use Them
+## 3. Core Modules & Step-by-Step Usage
 
-### 📖 Adding a New Book
-1. On the **Dashboard**, locate the **Add New Book** card on the left side.
-2. Enter the **Book Title**, **Author**, and **Category**.
-3. Select the initial status (`Available` or `Borrowed`).
-4. Click **Add Book to Library**. A success banner will confirm the addition.
+### 📖 1. Books Catalog & ISBN Auto-Fetch
+- **Auto-Fetch by ISBN**: Enter an ISBN (e.g. `9780132350884`) and click **Fetch** to automatically auto-fill Title, Author, Category, and Cover Image URL from Open Library API.
+- **Multi-Copy Quantity**: Set `total_copies` when adding books. `available_copies` updates dynamically.
+- **Multi-Criteria Sorting**: Sort catalog by Newest, Title (A-Z / Z-A), Author (A-Z), or Category.
 
-### 🔍 Searching & Filtering Books
-1. Type search terms into the **Search** field (matches title, author, or category).
-2. Filter specifically using the **All Categories** or **All Statuses** dropdown menus.
-3. Click **Filter**. To clear filters, click **Reset**.
+### 👤 2. Member & Profile Management
+- Navigate to the **Members** tab to register Students, Faculty, and Staff.
+- Manage contact details (Email, Phone Number) and view registration history.
 
-### 🔄 Issuing or Returning a Book
-1. Find the target book in the **Book List** table.
-2. Click the **Issue** button to mark an available book as borrowed.
-3. Click the **Return** button to mark a borrowed book as available again.
+### 🔄 3. Book Issue, Return & Fine Tracker
+- Go to the **Issue / Return** page to issue books to registered members.
+- **Automated Due Date**: Automatically sets 14 days return window.
+- **Late Fine Calculator**: Overdue books accumulate ₹5/day fine, calculated dynamically.
+- **Printable Slips & Receipts**: Click **📄 Slip** to open a clean printable transaction receipt featuring an authentic QR code verification badge.
 
-### ✏️ Editing a Book Record
-1. Click the **Edit** button in the action column for the book you wish to update.
-2. Update any fields (Title, Author, Category, Status).
-3. Click **Save Changes**.
+### 📌 4. Book Reservations & Hold Queue
+- Navigate to **Reservations** to place hold requests on books currently marked as `Borrowed`.
+- When the book is returned, track pending hold requests and fulfill or cancel holds.
 
-### 🗑️ Deleting a Book
-1. Click the **Delete** button next to the target book.
-2. Confirm the prompt to remove the book permanently.
+### ⭐ 5. Reader Reviews & Star Ratings
+- Click **⭐ Reviews** on any book card/table row.
+- Submit 1 to 5 star ratings with written community feedback.
+- View average book score badges (e.g. ⭐ 4.8 / 5.0).
+
+### 📊 6. Visual Analytics Dashboard
+- Open the **Analytics** page to view live interactive Chart.js charts:
+  - Books per Category (Bar Chart)
+  - Inventory Status Availability Ratio (Doughnut Chart)
+  - Member Demographics (Bar Chart)
 
 ---
 
 ## 4. Troubleshooting & Support
 
-If you encounter any issues, click on **Help & FAQ** in the top navigation bar or refer to `KNOWLEDGE_BASE.md`.
+If you encounter any issues, click **Help & FAQ** in the navigation bar.
