@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, redirect, url_for, flash, Res
 import sqlite3
 import csv
 import io
+from datetime import datetime, date, timedelta
 
 app = Flask(__name__)
 app.secret_key = "library_secret_key_super_secure"
@@ -365,6 +366,131 @@ def delete_member(id):
         flash(f'Member "{member["name"]}" deleted.', "warning")
     conn.close()
     return redirect(url_for("members_page"))
+
+
+@app.route("/borrow")
+def borrow_page():
+    search_query = request.args.get("q", "").strip()
+    conn = get_db_connection()
+    
+    query = """
+        SELECT r.id, r.book_id, r.member_id, r.issue_date, r.due_date, r.return_date, r.fine_amount, r.status,
+               b.title as book_title, b.author as book_author,
+               m.name as member_name, m.email as member_email
+        FROM borrow_records r
+        JOIN books b ON r.book_id = b.id
+        JOIN members m ON r.member_id = m.id
+        WHERE 1=1
+    """
+    params = []
+    if search_query:
+        query += " AND (b.title LIKE ? OR m.name LIKE ? OR r.status LIKE ?)"
+        wildcard = f"%{search_query}%"
+        params.extend([wildcard, wildcard, wildcard])
+    query += " ORDER BY r.id DESC"
+    
+    records = conn.execute(query, params).fetchall()
+    
+    today_str = date.today().isoformat()
+    enriched_records = []
+    for r in records:
+        r_dict = dict(r)
+        if r_dict["status"] == "Issued" and r_dict["due_date"] < today_str:
+            due_dt = datetime.strptime(r_dict["due_date"], "%Y-%m-%d").date()
+            overdue_days = (date.today() - due_dt).days
+            r_dict["calculated_fine"] = max(0, overdue_days * 5.0)
+            r_dict["overdue_days"] = overdue_days
+        else:
+            r_dict["calculated_fine"] = r_dict["fine_amount"] or 0.0
+            r_dict["overdue_days"] = 0
+        enriched_records.append(r_dict)
+
+    available_books = conn.execute("SELECT id, title, author FROM books WHERE status = 'Available'").fetchall()
+    members = conn.execute("SELECT id, name, member_type FROM members ORDER BY name").fetchall()
+    
+    issued_count = conn.execute("SELECT COUNT(*) FROM borrow_records WHERE status = 'Issued'").fetchone()[0]
+    total_fines = conn.execute("SELECT SUM(fine_amount) FROM borrow_records").fetchone()[0] or 0.0
+
+    conn.close()
+
+    return render_template(
+        "borrow.html",
+        records=enriched_records,
+        available_books=available_books,
+        members=members,
+        search_query=search_query,
+        stats={"issued": issued_count, "total_fines": total_fines},
+        today_date=today_str,
+        default_due_date=(date.today() + timedelta(days=14)).isoformat()
+    )
+
+
+@app.route("/borrow/issue", methods=["POST"])
+def issue_book():
+    book_id = request.form.get("book_id")
+    member_id = request.form.get("member_id")
+    due_date = request.form.get("due_date")
+
+    if not due_date:
+        due_date = (date.today() + timedelta(days=14)).isoformat()
+
+    if book_id and member_id:
+        conn = get_db_connection()
+        book = conn.execute("SELECT * FROM books WHERE id = ?", (book_id,)).fetchone()
+        member = conn.execute("SELECT * FROM members WHERE id = ?", (member_id,)).fetchone()
+
+        if book and member:
+            conn.execute(
+                """
+                INSERT INTO borrow_records (book_id, member_id, issue_date, due_date, status)
+                VALUES (?, ?, date('now'), ?, 'Issued')
+                """,
+                (book_id, member_id, due_date)
+            )
+            conn.execute("UPDATE books SET status = 'Borrowed' WHERE id = ?", (book_id,))
+            conn.commit()
+            flash(f'Book "{book["title"]}" issued to {member["name"]} successfully!', "success")
+        else:
+            flash("Invalid book or member selection.", "danger")
+        conn.close()
+    else:
+        flash("Please select both a book and a member.", "danger")
+
+    return redirect(url_for("borrow_page"))
+
+
+@app.route("/borrow/return/<int:id>")
+def return_book(id):
+    conn = get_db_connection()
+    record = conn.execute("SELECT * FROM borrow_records WHERE id = ?", (id,)).fetchone()
+
+    if record and record["status"] == "Issued":
+        due_dt = datetime.strptime(record["due_date"], "%Y-%m-%d").date()
+        today_dt = date.today()
+        fine = 0.0
+        if today_dt > due_dt:
+            overdue_days = (today_dt - due_dt).days
+            fine = overdue_days * 5.0
+
+        conn.execute(
+            """
+            UPDATE borrow_records
+            SET status = 'Returned', return_date = date('now'), fine_amount = ?
+            WHERE id = ?
+            """,
+            (fine, id)
+        )
+        conn.execute("UPDATE books SET status = 'Available' WHERE id = ?", (record["book_id"],))
+        conn.commit()
+        if fine > 0:
+            flash(f"Book returned! Late fine calculated: ₹{fine:.2f}", "warning")
+        else:
+            flash("Book returned on time! No fine incurred.", "success")
+    else:
+        flash("Record not found or already returned.", "danger")
+
+    conn.close()
+    return redirect(url_for("borrow_page"))
 
 
 @app.route("/help")

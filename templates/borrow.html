@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Issue / Return & Fine Tracker - Library System</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+    <!-- Sticky Navigation Bar -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="/" class="brand">
+                <span class="brand-icon">📚</span>
+                <span>LibManager</span>
+            </a>
+            <div class="nav-links">
+                <a href="/" class="nav-item">Books Catalog</a>
+                <a href="/members" class="nav-item">Members</a>
+                <a href="/borrow" class="nav-item active">Issue / Return</a>
+                <a href="/help" class="nav-item">Help & FAQ</a>
+                <a href="/about" class="nav-item">About</a>
+                <button type="button" id="theme-toggle" class="theme-btn" onclick="toggleTheme()" title="Toggle Dark / Light Theme">
+                    <span id="theme-icon">🌙</span>
+                    <span id="theme-label">Dark</span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-messages">
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">
+                            <span>{{ message }}</span>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <!-- Hero Header -->
+        <div class="hero-header">
+            <h1 class="hero-title">🔄 Book Issue, Return & Fine Tracker</h1>
+            <p class="hero-subtitle">Issue books to members with automated due date tracking and fine calculation (₹5/day overdue fee).</p>
+        </div>
+
+        <!-- Stats Overview -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon icon-orange">📖</div>
+                <div class="stat-info">
+                    <h4>Active Issued Books</h4>
+                    <div class="stat-value">{{ stats.issued }}</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon icon-purple">💰</div>
+                <div class="stat-info">
+                    <h4>Total Fines Collected</h4>
+                    <div class="stat-value">₹{{ "%.2f"|format(stats.total_fines) }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Issue Book & Borrow Transactions Grid -->
+        <div class="content-grid">
+
+            <!-- Issue Book Form Card -->
+            <div class="card form-card">
+                <h3>📤 Issue Book to Member</h3>
+                {% if available_books and members %}
+                    <form action="/borrow/issue" method="POST">
+                        <div class="form-group">
+                            <label for="book_id">Select Book *</label>
+                            <select id="book_id" name="book_id" required>
+                                <option value="">-- Choose Available Book --</option>
+                                {% for b in available_books %}
+                                    <option value="{{ b.id }}">{{ b.title }} (by {{ b.author }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="member_id">Select Member *</label>
+                            <select id="member_id" name="member_id" required>
+                                <option value="">-- Choose Registered Member --</option>
+                                {% for m in members %}
+                                    <option value="{{ m.id }}">{{ m.name }} ({{ m.member_type }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="due_date">Due Return Date *</label>
+                            <input type="date" id="due_date" name="due_date" value="{{ default_due_date }}" required>
+                            <small style="opacity: 0.75; display: block; margin-top: 4px;">Default: +14 days from today.</small>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-block">Confirm Book Issue</button>
+                    </form>
+                {% else %}
+                    <div style="padding: 15px; background: rgba(255, 193, 7, 0.15); border-radius: 8px; color: var(--text-color, #333);">
+                        {% if not available_books %}
+                            <p>⚠️ No available books right now to issue.</p>
+                        {% endif %}
+                        {% if not members %}
+                            <p>⚠️ No members registered. Please <a href="/members">register a member first</a>.</p>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Borrow Records Table Card -->
+            <div class="card table-card">
+                <div class="table-header">
+                    <h3>📋 Borrow Transactions Log ({{ records|length }})</h3>
+                    <form action="/borrow" method="GET" class="search-form">
+                        <input type="text" name="q" value="{{ search_query }}" placeholder="Search book, member, status...">
+                        <button type="submit" class="btn btn-secondary">Search</button>
+                        {% if search_query %}
+                            <a href="/borrow" class="btn btn-clear">Clear</a>
+                        {% endif %}
+                    </form>
+                </div>
+
+                <div class="table-wrapper">
+                    {% if records %}
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Ref ID</th>
+                                    <th>Book & Borrower</th>
+                                    <th>Dates (Issue / Due)</th>
+                                    <th>Status</th>
+                                    <th>Fine</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for r in records %}
+                                    <tr>
+                                        <td>#{{ r.id }}</td>
+                                        <td>
+                                            <strong>{{ r.book_title }}</strong>
+                                            <div style="font-size: 0.85em; opacity: 0.8;">👤 {{ r.member_name }}</div>
+                                        </td>
+                                        <td>
+                                            <div>📅 Issued: {{ r.issue_date }}</div>
+                                            <div style="font-size: 0.85em; color: {% if r.overdue_days > 0 %}#e74c3c{% else %}inherit{% endif %}; font-weight: {% if r.overdue_days > 0 %}bold{% else %}normal{% endif %};">
+                                                ⏳ Due: {{ r.due_date }}
+                                                {% if r.overdue_days > 0 %}
+                                                    <span style="font-size: 0.8em; background: #e74c3c; color: #fff; padding: 2px 6px; border-radius: 4px; margin-left: 4px;">{{ r.overdue_days }}d OVERDUE</span>
+                                                {% endif %}
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="status-badge status-{{ 'borrowed' if r.status == 'Issued' else 'available' }}">
+                                                {{ r.status }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            {% if r.calculated_fine > 0 %}
+                                                <strong style="color: #e74c3c;">₹{{ "%.2f"|format(r.calculated_fine) }}</strong>
+                                            {% else %}
+                                                <span style="opacity: 0.6;">₹0.00</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if r.status == 'Issued' %}
+                                                <a href="/borrow/return/{{ r.id }}" class="btn-sm btn-edit-sm" onclick="return confirm('Confirm book return for {{ r.book_title }}?')">Return Book</a>
+                                            {% else %}
+                                                <span style="font-size: 0.85em; opacity: 0.7;">Returned on {{ r.return_date }}</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    {% else %}
+                        <div class="empty-state">
+                            <div class="empty-icon">📖</div>
+                            <p>No borrow records found.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            updateThemeButton(newTheme);
+        }
+        function updateThemeButton(theme) {
+            const icon = document.getElementById('theme-icon');
+            const label = document.getElementById('theme-label');
+            if (icon && label) {
+                icon.textContent = theme === 'dark' ? '☀️' : '🌙';
+                label.textContent = theme === 'dark' ? 'Light' : 'Dark';
+            }
+        }
+        (function() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            updateThemeButton(savedTheme);
+        })();
+    </script>
+</body>
+</html>
