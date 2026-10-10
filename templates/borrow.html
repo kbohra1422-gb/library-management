@@ -19,6 +19,7 @@
                 <a href="/" class="nav-item">Books Catalog</a>
                 <a href="/members" class="nav-item">Members</a>
                 <a href="/borrow" class="nav-item active">Issue / Return</a>
+                <a href="/analytics" class="nav-item">Analytics</a>
                 <a href="/help" class="nav-item">Help & FAQ</a>
                 <a href="/about" class="nav-item">About</a>
                 <button type="button" id="theme-toggle" class="theme-btn" onclick="toggleTheme()" title="Toggle Dark / Light Theme">
@@ -169,11 +170,14 @@
                                             {% endif %}
                                         </td>
                                         <td>
-                                            {% if r.status == 'Issued' %}
-                                                <a href="/borrow/return/{{ r.id }}" class="btn-sm btn-edit-sm" onclick="return confirm('Confirm book return for {{ r.book_title }}?')">Return Book</a>
-                                            {% else %}
-                                                <span style="font-size: 0.85em; opacity: 0.7;">Returned on {{ r.return_date }}</span>
-                                            {% endif %}
+                                            <div style="display: flex; gap: 4px; flex-wrap: wrap; align-items: center;">
+                                                {% if r.status == 'Issued' %}
+                                                    <a href="/borrow/return/{{ r.id }}" class="btn-sm btn-edit-sm" onclick="return confirm('Confirm book return for {{ r.book_title }}?')">Return</a>
+                                                {% else %}
+                                                    <span style="font-size: 0.85em; opacity: 0.7;">Returned</span>
+                                                {% endif %}
+                                                <a href="/borrow/receipt/{{ r.id }}" class="btn-sm" style="background: rgba(78, 115, 223, 0.15); color: #4e73df; padding: 4px 8px; border-radius: 4px; text-decoration: none; font-size: 0.85em; font-weight: 600;">📄 Slip</a>
+                                            </div>
                                         </td>
                                     </tr>
                                 {% endfor %}

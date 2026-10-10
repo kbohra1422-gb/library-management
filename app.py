@@ -579,6 +579,27 @@ def analytics_page():
     )
 
 
+@app.route("/borrow/receipt/<int:id>")
+def borrow_receipt(id):
+    conn = get_db_connection()
+    record = conn.execute("""
+        SELECT r.id, r.book_id, r.member_id, r.issue_date, r.due_date, r.return_date, r.fine_amount, r.status,
+               b.title as book_title, b.author as book_author, b.category as book_category, b.isbn,
+               m.name as member_name, m.email as member_email, m.phone as member_phone, m.member_type
+        FROM borrow_records r
+        JOIN books b ON r.book_id = b.id
+        JOIN members m ON r.member_id = m.id
+        WHERE r.id = ?
+    """, (id,)).fetchone()
+    conn.close()
+
+    if not record:
+        flash("Borrow record not found.", "danger")
+        return redirect(url_for("borrow_page"))
+
+    return render_template("receipt.html", record=record)
+
+
 @app.route("/help")
 def help_page():
     return render_template("help.html")

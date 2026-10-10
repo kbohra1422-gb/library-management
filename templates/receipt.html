@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Library Receipt #{{ record.id }}</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f6f9;
+            color: #2c3e50;
+            margin: 0;
+            padding: 40px 20px;
+        }
+        .receipt-card {
+            max-width: 550px;
+            margin: 0 auto;
+            background: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            border-top: 6px solid #4e73df;
+        }
+        .receipt-header {
+            text-align: center;
+            border-bottom: 2px dashed #e2e8f0;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+        .receipt-header h2 {
+            margin: 0 0 5px 0;
+            color: #2c3e50;
+        }
+        .receipt-header p {
+            margin: 0;
+            color: #718096;
+            font-size: 0.9em;
+        }
+        .row-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        .label {
+            font-weight: 600;
+            color: #4a5568;
+        }
+        .value {
+            font-weight: 500;
+            color: #1a202c;
+        }
+        .qr-box {
+            text-align: center;
+            margin-top: 25px;
+            padding-top: 15px;
+            border-top: 2px dashed #e2e8f0;
+        }
+        .qr-box img {
+            width: 120px;
+            height: 120px;
+            border-radius: 8px;
+            border: 1px solid #cbd5e1;
+        }
+        .actions {
+            text-align: center;
+            margin-top: 25px;
+        }
+        .btn {
+            background: #4e73df;
+            color: #ffffff;
+            border: none;
+            padding: 10px 20px;
+            font-size: 0.95em;
+            font-weight: 600;
+            border-radius: 6px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .btn:hover { background: #2e59d9; }
+        .btn-outline { background: transparent; color: #4e73df; border: 1px solid #4e73df; margin-left: 10px; }
+        @media print {
+            body { background: #ffffff; padding: 0; }
+            .receipt-card { box-shadow: none; border-top: none; width: 100%; max-width: 100%; }
+            .actions { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="receipt-card">
+        <div class="receipt-header">
+            <h2>📚 LibManager Official Receipt</h2>
+            <p>Transaction Reference: #REC-{{ record.id }}-{{ record.issue_date[:4] }}</p>
+        </div>
+
+        <div class="row-item">
+            <span class="label">Book Title</span>
+            <span class="value">{{ record.book_title }}</span>
+        </div>
+        <div class="row-item">
+            <span class="label">Author</span>
+            <span class="value">{{ record.book_author }}</span>
+        </div>
+        <div class="row-item">
+            <span class="label">ISBN</span>
+            <span class="value">{{ record.isbn or 'N/A' }}</span>
+        </div>
+        <div class="row-item">
+            <span class="label">Member Name</span>
+            <span class="value">{{ record.member_name }} ({{ record.member_type }})</span>
+        </div>
+        <div class="row-item">
+            <span class="label">Issue Date</span>
+            <span class="value">{{ record.issue_date }}</span>
+        </div>
+        <div class="row-item">
+            <span class="label">Due Date</span>
+            <span class="value" style="color: #e74c3c; font-weight: bold;">{{ record.due_date }}</span>
+        </div>
+        <div class="row-item">
+            <span class="label">Status</span>
+            <span class="value">{{ record.status }}</span>
+        </div>
+        <div class="row-item">
+            <span class="label">Fine Amount</span>
+            <span class="value">₹{{ "%.2f"|format(record.fine_amount or 0.0) }}</span>
+        </div>
+
+        <div class="qr-box">
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=REC-{{ record.id }}-BOOK-{{ record.book_id }}-MEM-{{ record.member_id }}" alt="Receipt QR Code">
+            <p style="font-size: 0.8em; color: #718096; margin-top: 6px;">Scan to verify transaction authenticity</p>
+        </div>
+
+        <div class="actions">
+            <button onclick="window.print()" class="btn">🖨️ Print / Save PDF</button>
+            <a href="/borrow" class="btn btn-outline">⬅️ Back to Borrow Log</a>
+        </div>
+    </div>
+
+</body>
+</html>
