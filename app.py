@@ -1,7 +1,9 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, Response
+from flask import Flask, render_template, request, redirect, url_for, flash, Response, jsonify
 import sqlite3
 import csv
 import io
+import json
+import urllib.request
 from datetime import datetime, date, timedelta
 
 app = Flask(__name__)
@@ -140,21 +142,51 @@ def home():
     )
 
 
+@app.route("/api/isbn/<isbn>")
+def api_fetch_isbn(isbn):
+    clean_isbn = isbn.strip().replace("-", "").replace(" ", "")
+    try:
+        url = f"https://openlibrary.org/api/books?bibkeys=ISBN:{clean_isbn}&format=json&jscmd=data"
+        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+        with urllib.request.urlopen(req, timeout=5) as response:
+            data = json.loads(response.read().decode())
+            key = f"ISBN:{clean_isbn}"
+            if key in data:
+                info = data[key]
+                title = info.get("title", "")
+                authors = ", ".join([a.get("name", "") for a in info.get("authors", [])])
+                cover = info.get("cover", {}).get("medium", "") or info.get("cover", {}).get("large", "")
+                subjects = info.get("subjects", [])
+                category = subjects[0].get("name") if subjects else "General"
+                return jsonify({
+                    "success": True,
+                    "title": title,
+                    "author": authors,
+                    "category": category,
+                    "cover_url": cover
+                })
+    except Exception as e:
+        pass
+    return jsonify({"success": False, "message": "ISBN details not found"}), 404
+
+
 @app.route("/add", methods=["POST"])
 def add_book():
     title = request.form.get("title", "").strip()
     author = request.form.get("author", "").strip()
     category = request.form.get("category", "").strip()
     status = request.form.get("status", "Available").strip()
+    isbn = request.form.get("isbn", "").strip()
+    cover_url = request.form.get("cover_url", "").strip()
 
     if title and author and category:
         conn = get_db_connection()
         conn.execute(
             """
-            INSERT INTO books (title, author, category, status)
-            VALUES (?, ?, ?, ?)
+            INSERT INTO books (title, author, category, status, isbn, cover_url)
+            VALUES (?, ?, ?, ?, ?, ?)
             """,
-            (title, author, category, status)
+            (title, author, category, status, isbn if isbn else None, cover_url if cover_url else None)
         )
         conn.commit()
         conn.close()
@@ -180,15 +212,17 @@ def edit_book(id):
         author = request.form.get("author", "").strip()
         category = request.form.get("category", "").strip()
         status = request.form.get("status", "Available").strip()
+        isbn = request.form.get("isbn", "").strip()
+        cover_url = request.form.get("cover_url", "").strip()
 
         if title and author and category:
             conn.execute(
                 """
                 UPDATE books
-                SET title = ?, author = ?, category = ?, status = ?
+                SET title = ?, author = ?, category = ?, status = ?, isbn = ?, cover_url = ?
                 WHERE id = ?
                 """,
-                (title, author, category, status, id)
+                (title, author, category, status, isbn if isbn else None, cover_url if cover_url else None, id)
             )
             conn.commit()
             conn.close()

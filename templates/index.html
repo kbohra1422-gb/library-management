@@ -91,6 +91,17 @@
             <!-- Left Column: Add New Book Form -->
             <div class="card">
                 <h3 class="card-title">➕ Add New Book</h3>
+                
+                <!-- ISBN Quick Fetch Box -->
+                <div style="background: rgba(0,123,255,0.08); padding: 10px; border-radius: 8px; margin-bottom: 15px; border: 1px solid rgba(0,123,255,0.2);">
+                    <label for="isbn_fetch" style="font-size: 0.85em; font-weight: bold; margin-bottom: 4px; display: block;">🔍 Auto-Fetch Details via ISBN</label>
+                    <div style="display: flex; gap: 6px;">
+                        <input type="text" id="isbn_fetch" placeholder="e.g. 9780132350884" style="flex: 1; padding: 6px 10px; border-radius: 6px; border: 1px solid #ccc; font-size: 0.9em;">
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="fetchIsbnDetails()" id="btn-fetch-isbn">Fetch</button>
+                    </div>
+                    <small id="isbn-msg" style="display: block; font-size: 0.78em; margin-top: 4px; color: var(--text-color); opacity: 0.8;"></small>
+                </div>
+
                 <form action="/add" method="POST">
                     
                     <div class="form-group">
@@ -106,6 +117,16 @@
                     <div class="form-group">
                         <label for="category">Category *</label>
                         <input type="text" id="category" name="category" class="form-control" placeholder="e.g. Software Engineering" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="isbn">ISBN Code</label>
+                        <input type="text" id="isbn" name="isbn" class="form-control" placeholder="Optional ISBN">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="cover_url">Cover Image URL</label>
+                        <input type="url" id="cover_url" name="cover_url" class="form-control" placeholder="https://example.com/cover.jpg">
                     </div>
 
                     <div class="form-group">
@@ -242,6 +263,42 @@
         }
 
         document.addEventListener('DOMContentLoaded', updateThemeUI);
+
+        async function fetchIsbnDetails() {
+            const isbnInput = document.getElementById('isbn_fetch');
+            const isbnVal = isbnInput ? isbnInput.value.trim() : '';
+            const msgEl = document.getElementById('isbn-msg');
+            const btn = document.getElementById('btn-fetch-isbn');
+
+            if (!isbnVal) {
+                if (msgEl) msgEl.textContent = '❌ Please enter an ISBN number.';
+                return;
+            }
+
+            if (msgEl) msgEl.textContent = '⏳ Searching Open Library API...';
+            if (btn) btn.disabled = true;
+
+            try {
+                const res = await fetch('/api/isbn/' + encodeURIComponent(isbnVal));
+                const data = await res.json();
+
+                if (data.success) {
+                    if (document.getElementById('title')) document.getElementById('title').value = data.title || '';
+                    if (document.getElementById('author')) document.getElementById('author').value = data.author || '';
+                    if (document.getElementById('category')) document.getElementById('category').value = data.category || '';
+                    if (document.getElementById('isbn')) document.getElementById('isbn').value = isbnVal;
+                    if (document.getElementById('cover_url')) document.getElementById('cover_url').value = data.cover_url || '';
+
+                    if (msgEl) msgEl.textContent = '✅ Book details loaded!';
+                } else {
+                    if (msgEl) msgEl.textContent = '⚠️ ISBN not found. Please fill manually.';
+                }
+            } catch (err) {
+                if (msgEl) msgEl.textContent = '❌ Network error fetching ISBN details.';
+            } finally {
+                if (btn) btn.disabled = false;
+            }
+        }
     </script>
 </body>
 </html>
