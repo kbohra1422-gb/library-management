@@ -27,9 +27,50 @@ def init_db():
             author TEXT NOT NULL,
             category TEXT NOT NULL,
             status TEXT DEFAULT 'Available',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            isbn TEXT,
+            cover_url TEXT,
+            total_copies INTEGER DEFAULT 1,
+            available_copies INTEGER DEFAULT 1
+        )
+    """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS members (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            email TEXT UNIQUE,
+            phone TEXT,
+            member_type TEXT DEFAULT 'Student',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS borrow_records (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            book_id INTEGER NOT NULL,
+            member_id INTEGER NOT NULL,
+            issue_date DATE DEFAULT (date('now')),
+            due_date DATE NOT NULL,
+            return_date DATE,
+            fine_amount REAL DEFAULT 0.0,
+            status TEXT DEFAULT 'Issued',
+            FOREIGN KEY (book_id) REFERENCES books(id),
+            FOREIGN KEY (member_id) REFERENCES members(id)
+        )
+    """)
+
+    cursor = conn.cursor()
+    cursor.execute("PRAGMA table_info(books)")
+    existing_cols = [row[1] for row in cursor.fetchall()]
+    if "isbn" not in existing_cols:
+        cursor.execute("ALTER TABLE books ADD COLUMN isbn TEXT")
+    if "cover_url" not in existing_cols:
+        cursor.execute("ALTER TABLE books ADD COLUMN cover_url TEXT")
+    if "total_copies" not in existing_cols:
+        cursor.execute("ALTER TABLE books ADD COLUMN total_copies INTEGER DEFAULT 1")
+    if "available_copies" not in existing_cols:
+        cursor.execute("ALTER TABLE books ADD COLUMN available_copies INTEGER DEFAULT 1")
+
     conn.commit()
     conn.close()
 

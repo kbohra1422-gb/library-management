@@ -25,9 +25,50 @@ def init_db():
             author TEXT NOT NULL,
             category TEXT NOT NULL,
             status TEXT DEFAULT 'Available',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            isbn TEXT,
+            cover_url TEXT,
+            total_copies INTEGER DEFAULT 1,
+            available_copies INTEGER DEFAULT 1
+        )
+    """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS members (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            email TEXT UNIQUE,
+            phone TEXT,
+            member_type TEXT DEFAULT 'Student',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS borrow_records (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            book_id INTEGER NOT NULL,
+            member_id INTEGER NOT NULL,
+            issue_date DATE DEFAULT (date('now')),
+            due_date DATE NOT NULL,
+            return_date DATE,
+            fine_amount REAL DEFAULT 0.0,
+            status TEXT DEFAULT 'Issued',
+            FOREIGN KEY (book_id) REFERENCES books(id),
+            FOREIGN KEY (member_id) REFERENCES members(id)
+        )
+    """)
+
+    cursor = conn.cursor()
+    cursor.execute("PRAGMA table_info(books)")
+    existing_cols = [row[1] for row in cursor.fetchall()]
+    if "isbn" not in existing_cols:
+        cursor.execute("ALTER TABLE books ADD COLUMN isbn TEXT")
+    if "cover_url" not in existing_cols:
+        cursor.execute("ALTER TABLE books ADD COLUMN cover_url TEXT")
+    if "total_copies" not in existing_cols:
+        cursor.execute("ALTER TABLE books ADD COLUMN total_copies INTEGER DEFAULT 1")
+    if "available_copies" not in existing_cols:
+        cursor.execute("ALTER TABLE books ADD COLUMN available_copies INTEGER DEFAULT 1")
+
     conn.commit()
     conn.close()
 
@@ -236,6 +277,94 @@ def export_csv():
         mimetype="text/csv",
         headers={"Content-Disposition": "attachment; filename=library_books.csv"}
     )
+
+
+@app.route("/members")
+def members_page():
+    search_query = request.args.get("q", "").strip()
+    conn = get_db_connection()
+    query = "SELECT * FROM members WHERE 1=1"
+    params = []
+    if search_query:
+        query += " AND (name LIKE ? OR email LIKE ? OR phone LIKE ? OR member_type LIKE ?)"
+        wildcard = f"%{search_query}%"
+        params.extend([wildcard, wildcard, wildcard, wildcard])
+    query += " ORDER BY id DESC"
+    members = conn.execute(query, params).fetchall()
+    
+    total_members = conn.execute("SELECT COUNT(*) FROM members").fetchone()[0]
+    students_count = conn.execute("SELECT COUNT(*) FROM members WHERE member_type = 'Student'").fetchone()[0]
+    faculty_count = conn.execute("SELECT COUNT(*) FROM members WHERE member_type = 'Faculty'").fetchone()[0]
+    conn.close()
+    
+    return render_template(
+        "members.html",
+        members=members,
+        search_query=search_query,
+        stats={"total": total_members, "students": students_count, "faculty": faculty_count}
+    )
+
+
+@app.route("/members/add", methods=["POST"])
+def add_member():
+    name = request.form.get("name", "").strip()
+    email = request.form.get("email", "").strip()
+    phone = request.form.get("phone", "").strip()
+    member_type = request.form.get("member_type", "Student").strip()
+
+    if name:
+        conn = get_db_connection()
+        try:
+            conn.execute(
+                "INSERT INTO members (name, email, phone, member_type) VALUES (?, ?, ?, ?)",
+                (name, email if email else None, phone, member_type)
+            )
+            conn.commit()
+            flash(f'Member "{name}" registered successfully!', "success")
+        except sqlite3.IntegrityError:
+            flash("Email already registered for another member.", "danger")
+        finally:
+            conn.close()
+    else:
+        flash("Member name is required.", "danger")
+
+    return redirect(url_for("members_page"))
+
+
+@app.route("/members/edit/<int:id>", methods=["POST"])
+def edit_member(id):
+    name = request.form.get("name", "").strip()
+    email = request.form.get("email", "").strip()
+    phone = request.form.get("phone", "").strip()
+    member_type = request.form.get("member_type", "Student").strip()
+
+    if name:
+        conn = get_db_connection()
+        try:
+            conn.execute(
+                "UPDATE members SET name=?, email=?, phone=?, member_type=? WHERE id=?",
+                (name, email if email else None, phone, member_type, id)
+            )
+            conn.commit()
+            flash(f'Member record updated successfully!', "success")
+        except sqlite3.IntegrityError:
+            flash("Email already in use by another member.", "danger")
+        finally:
+            conn.close()
+
+    return redirect(url_for("members_page"))
+
+
+@app.route("/members/delete/<int:id>")
+def delete_member(id):
+    conn = get_db_connection()
+    member = conn.execute("SELECT * FROM members WHERE id = ?", (id,)).fetchone()
+    if member:
+        conn.execute("DELETE FROM members WHERE id = ?", (id,))
+        conn.commit()
+        flash(f'Member "{member["name"]}" deleted.', "warning")
+    conn.close()
+    return redirect(url_for("members_page"))
 
 
 @app.route("/help")

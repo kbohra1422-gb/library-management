@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Member Management - Library System</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+    <!-- Sticky Navigation Bar -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="/" class="brand">
+                <span class="brand-icon">📚</span>
+                <span>LibManager</span>
+            </a>
+            <div class="nav-links">
+                <a href="/" class="nav-item">Books Catalog</a>
+                <a href="/members" class="nav-item active">Members</a>
+                <a href="/help" class="nav-item">Help & FAQ</a>
+                <a href="/about" class="nav-item">About</a>
+                <button type="button" id="theme-toggle" class="theme-btn" onclick="toggleTheme()" title="Toggle Dark / Light Theme">
+                    <span id="theme-icon">🌙</span>
+                    <span id="theme-label">Dark</span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-messages">
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">
+                            <span>{{ message }}</span>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <!-- Hero Header -->
+        <div class="hero-header">
+            <h1 class="hero-title">👤 Member Directory & Profiles</h1>
+            <p class="hero-subtitle">Manage library members, students, faculty, and contact records.</p>
+        </div>
+
+        <!-- Dashboard Stats -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon icon-purple">👥</div>
+                <div class="stat-info">
+                    <h4>Total Members</h4>
+                    <div class="stat-value">{{ stats.total }}</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon icon-green">🎓</div>
+                <div class="stat-info">
+                    <h4>Students</h4>
+                    <div class="stat-value">{{ stats.students }}</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon icon-orange">👨‍🏫</div>
+                <div class="stat-info">
+                    <h4>Faculty / Staff</h4>
+                    <div class="stat-value">{{ stats.faculty }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add Member Card & Table Grid -->
+        <div class="content-grid">
+
+            <!-- Add Member Form -->
+            <div class="card form-card">
+                <h3>➕ Register New Member</h3>
+                <form action="/members/add" method="POST">
+                    <div class="form-group">
+                        <label for="name">Full Name *</label>
+                        <input type="text" id="name" name="name" required placeholder="e.g. Rahul Sharma">
+                    </div>
+                    <div class="form-group">
+                        <label for="email">Email Address</label>
+                        <input type="email" id="email" name="email" placeholder="rahul@example.com">
+                    </div>
+                    <div class="form-group">
+                        <label for="phone">Phone Number</label>
+                        <input type="text" id="phone" name="phone" placeholder="+91 9876543210">
+                    </div>
+                    <div class="form-group">
+                        <label for="member_type">Member Role</label>
+                        <select id="member_type" name="member_type">
+                            <option value="Student">Student</option>
+                            <option value="Faculty">Faculty</option>
+                            <option value="Staff">Staff</option>
+                            <option value="External">External</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block">Register Member</button>
+                </form>
+            </div>
+
+            <!-- Members Table Card -->
+            <div class="card table-card">
+                <div class="table-header">
+                    <h3>📋 Registered Members ({{ members|length }})</h3>
+                    <form action="/members" method="GET" class="search-form">
+                        <input type="text" name="q" value="{{ search_query }}" placeholder="Search by name, email, phone...">
+                        <button type="submit" class="btn btn-secondary">Search</button>
+                        {% if search_query %}
+                            <a href="/members" class="btn btn-clear">Clear</a>
+                        {% endif %}
+                    </form>
+                </div>
+
+                <div class="table-wrapper">
+                    {% if members %}
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Name</th>
+                                    <th>Contact Info</th>
+                                    <th>Role</th>
+                                    <th>Registered Date</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for m in members %}
+                                    <tr>
+                                        <td>#{{ m.id }}</td>
+                                        <td><strong>{{ m.name }}</strong></td>
+                                        <td>
+                                            <div>📧 {{ m.email or 'N/A' }}</div>
+                                            <div style="font-size: 0.85em; opacity: 0.8;">📞 {{ m.phone or 'N/A' }}</div>
+                                        </td>
+                                        <td>
+                                            <span class="status-badge status-{{ 'available' if m.member_type == 'Student' else 'borrowed' }}">
+                                                {{ m.member_type }}
+                                            </span>
+                                        </td>
+                                        <td>{{ m.created_at[:10] if m.created_at else 'N/A' }}</td>
+                                        <td>
+                                            <a href="/members/delete/{{ m.id }}" class="btn-sm btn-danger-sm" onclick="return confirm('Delete member {{ m.name }}?')">Delete</a>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    {% else %}
+                        <div class="empty-state">
+                            <div class="empty-icon">👥</div>
+                            <p>No members registered yet.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            updateThemeButton(newTheme);
+        }
+        function updateThemeButton(theme) {
+            const icon = document.getElementById('theme-icon');
+            const label = document.getElementById('theme-label');
+            if (icon && label) {
+                icon.textContent = theme === 'dark' ? '☀️' : '🌙';
+                label.textContent = theme === 'dark' ? 'Light' : 'Dark';
+            }
+        }
+        (function() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            updateThemeButton(savedTheme);
+        })();
+    </script>
+</body>
+</html>
