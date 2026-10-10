@@ -229,7 +229,8 @@
                                         {% endif %}
                                     </td>
                                     <td style="text-align: right;">
-                                        <div style="display: flex; gap: 0.35rem; justify-content: flex-end;">
+                                        <div style="display: flex; gap: 0.35rem; justify-content: flex-end; flex-wrap: wrap;">
+                                            <a href="/reviews/{{ book.id }}" class="btn btn-sm" style="background: rgba(245, 158, 11, 0.15); color: #d97706;" title="View & Add Reviews">⭐ Reviews</a>
                                             <a href="/toggle/{{ book.id }}" class="btn btn-sm {% if book.status == 'Available' %}btn-warning{% else %}btn-success{% endif %}" title="Toggle Available/Borrowed">
                                                 {% if book.status == 'Available' %}Issue{% else %}Return{% endif %}
                                             </a>

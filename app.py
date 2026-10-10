@@ -70,6 +70,17 @@ def init_db():
             FOREIGN KEY (member_id) REFERENCES members(id)
         )
     """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS reviews (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            book_id INTEGER NOT NULL,
+            reviewer_name TEXT NOT NULL,
+            rating INTEGER NOT NULL,
+            comment TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (book_id) REFERENCES books(id)
+        )
+    """)
 
     cursor = conn.cursor()
     cursor.execute("PRAGMA table_info(books)")
@@ -672,6 +683,52 @@ def cancel_reservation(id):
     conn.close()
     flash("Reservation request cancelled.", "warning")
     return redirect(url_for("reservations_page"))
+
+
+@app.route("/reviews/<int:book_id>", methods=["GET", "POST"])
+def book_reviews(book_id):
+    conn = get_db_connection()
+    book = conn.execute("SELECT * FROM books WHERE id = ?", (book_id,)).fetchone()
+
+    if not book:
+        conn.close()
+        flash("Book not found!", "danger")
+        return redirect(url_for("home"))
+
+    if request.method == "POST":
+        reviewer_name = request.form.get("reviewer_name", "").strip()
+        rating = request.form.get("rating", 5)
+        comment = request.form.get("comment", "").strip()
+
+        try:
+            rating_val = max(1, min(5, int(rating)))
+        except (ValueError, TypeError):
+            rating_val = 5
+
+        if reviewer_name:
+            conn.execute(
+                "INSERT INTO reviews (book_id, reviewer_name, rating, comment) VALUES (?, ?, ?, ?)",
+                (book_id, reviewer_name, rating_val, comment)
+            )
+            conn.commit()
+            flash("Thank you for your book review & rating!", "success")
+        else:
+            flash("Reviewer name is required.", "danger")
+
+    reviews = conn.execute("SELECT * FROM reviews WHERE book_id = ? ORDER BY id DESC", (book_id,)).fetchall()
+    avg_rating_row = conn.execute("SELECT AVG(rating) as avg_rating, COUNT(*) as count FROM reviews WHERE book_id = ?", (book_id,)).fetchone()
+    conn.close()
+
+    avg_rating = round(avg_rating_row["avg_rating"], 1) if avg_rating_row["avg_rating"] else None
+    review_count = avg_rating_row["count"]
+
+    return render_template(
+        "reviews.html",
+        book=book,
+        reviews=reviews,
+        avg_rating=avg_rating,
+        review_count=review_count
+    )
 
 
 @app.route("/help")
