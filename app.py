@@ -550,6 +550,35 @@ def return_book(id):
     return redirect(url_for("borrow_page"))
 
 
+@app.route("/analytics")
+def analytics_page():
+    conn = get_db_connection()
+    
+    # Category statistics
+    cat_rows = conn.execute("SELECT category, COUNT(*) as count FROM books GROUP BY category ORDER BY count DESC").fetchall()
+    categories = [r["category"] for r in cat_rows]
+    category_counts = [r["count"] for r in cat_rows]
+
+    # Status distribution
+    total_avail = conn.execute("SELECT COUNT(*) FROM books WHERE status = 'Available'").fetchone()[0]
+    total_borrowed = conn.execute("SELECT COUNT(*) FROM books WHERE status = 'Borrowed'").fetchone()[0]
+
+    # Member type distribution
+    mem_rows = conn.execute("SELECT member_type, COUNT(*) as count FROM members GROUP BY member_type").fetchall()
+    member_types = [r["member_type"] for r in mem_rows]
+    member_counts = [r["count"] for r in mem_rows]
+
+    conn.close()
+
+    return render_template(
+        "analytics.html",
+        categories_json=json.dumps(categories),
+        cat_counts_json=json.dumps(category_counts),
+        status_json=json.dumps({"Available": total_avail, "Borrowed": total_borrowed}),
+        members_json=json.dumps({"labels": member_types, "data": member_counts})
+    )
+
+
 @app.route("/help")
 def help_page():
     return render_template("help.html")
