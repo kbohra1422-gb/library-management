@@ -178,19 +178,25 @@ def add_book():
     status = request.form.get("status", "Available").strip()
     isbn = request.form.get("isbn", "").strip()
     cover_url = request.form.get("cover_url", "").strip()
+    try:
+        total_copies = max(1, int(request.form.get("total_copies", 1)))
+    except (ValueError, TypeError):
+        total_copies = 1
+
+    available_copies = total_copies if status == "Available" else 0
 
     if title and author and category:
         conn = get_db_connection()
         conn.execute(
             """
-            INSERT INTO books (title, author, category, status, isbn, cover_url)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO books (title, author, category, status, isbn, cover_url, total_copies, available_copies)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """,
-            (title, author, category, status, isbn if isbn else None, cover_url if cover_url else None)
+            (title, author, category, status, isbn if isbn else None, cover_url if cover_url else None, total_copies, available_copies)
         )
         conn.commit()
         conn.close()
-        flash(f'Book "{title}" added successfully!', "success")
+        flash(f'Book "{title}" added successfully with {total_copies} copies!', "success")
     else:
         flash("Please fill in all required fields.", "danger")
 
@@ -214,15 +220,23 @@ def edit_book(id):
         status = request.form.get("status", "Available").strip()
         isbn = request.form.get("isbn", "").strip()
         cover_url = request.form.get("cover_url", "").strip()
+        try:
+            total_copies = max(1, int(request.form.get("total_copies", book["total_copies"] or 1)))
+        except (ValueError, TypeError):
+            total_copies = book["total_copies"] or 1
+
+        curr_avail = book["available_copies"] if book["available_copies"] is not None else 1
+        diff = total_copies - (book["total_copies"] or 1)
+        new_avail = max(0, curr_avail + diff)
 
         if title and author and category:
             conn.execute(
                 """
                 UPDATE books
-                SET title = ?, author = ?, category = ?, status = ?, isbn = ?, cover_url = ?
+                SET title = ?, author = ?, category = ?, status = ?, isbn = ?, cover_url = ?, total_copies = ?, available_copies = ?
                 WHERE id = ?
                 """,
-                (title, author, category, status, isbn if isbn else None, cover_url if cover_url else None, id)
+                (title, author, category, status, isbn if isbn else None, cover_url if cover_url else None, total_copies, new_avail, id)
             )
             conn.commit()
             conn.close()
@@ -241,10 +255,19 @@ def toggle_status(id):
     book = conn.execute("SELECT * FROM books WHERE id = ?", (id,)).fetchone()
 
     if book:
-        new_status = "Borrowed" if book["status"] == "Available" else "Available"
-        conn.execute("UPDATE books SET status = ? WHERE id = ?", (new_status, id))
+        tot = book["total_copies"] or 1
+        avail = book["available_copies"] if book["available_copies"] is not None else (1 if book["status"] == "Available" else 0)
+        
+        if book["status"] == "Available":
+            new_status = "Borrowed"
+            new_avail = max(0, avail - 1)
+        else:
+            new_status = "Available"
+            new_avail = min(tot, avail + 1)
+
+        conn.execute("UPDATE books SET status = ?, available_copies = ? WHERE id = ?", (new_status, new_avail, id))
         conn.commit()
-        flash(f'Status for "{book["title"]}" changed to {new_status}.', "info")
+        flash(f'Status for "{book["title"]}" updated.', "info")
 
     conn.close()
     return redirect(url_for("home"))
