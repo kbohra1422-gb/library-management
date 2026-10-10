@@ -146,44 +146,53 @@
             <div>
                 
                 <!-- Filter and Search Controls -->
-                <form method="GET" action="/" class="filter-bar">
+                <form method="GET" action="/" class="filter-bar" style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 1.25rem;">
                     <input 
                         type="text" 
                         name="q" 
                         value="{{ search_query }}" 
-                        placeholder="🔍 Search title, author, category..." 
-                        class="form-control search-input"
+                        placeholder="🔍 Search title, author, category, ISBN..." 
+                        class="form-control"
+                        style="flex: 1; min-width: 200px;"
                     >
 
-                    <select name="category" class="form-control filter-select">
+                    <select name="category" class="form-control" style="width: auto;">
                         <option value="">All Categories</option>
                         {% for cat in categories %}
                             <option value="{{ cat }}" {% if selected_category == cat %}selected{% endif %}>{{ cat }}</option>
                         {% endfor %}
                     </select>
 
-                    <select name="status" class="form-control filter-select">
+                    <select name="status" class="form-control" style="width: auto;">
                         <option value="">All Statuses</option>
                         <option value="Available" {% if selected_status == 'Available' %}selected{% endif %}>Available</option>
                         <option value="Borrowed" {% if selected_status == 'Borrowed' %}selected{% endif %}>Borrowed</option>
                     </select>
 
+                    <select name="sort" class="form-control" style="width: auto;">
+                        <option value="newest" {% if selected_sort == 'newest' %}selected{% endif %}>Sort: Newest</option>
+                        <option value="title_asc" {% if selected_sort == 'title_asc' %}selected{% endif %}>Sort: Title (A-Z)</option>
+                        <option value="title_desc" {% if selected_sort == 'title_desc' %}selected{% endif %}>Sort: Title (Z-A)</option>
+                        <option value="author_asc" {% if selected_sort == 'author_asc' %}selected{% endif %}>Sort: Author (A-Z)</option>
+                        <option value="category_asc" {% if selected_sort == 'category_asc' %}selected{% endif %}>Sort: Category</option>
+                    </select>
+
                     <button type="submit" class="btn btn-primary">Filter</button>
-                    {% if search_query or selected_category or selected_status %}
+                    {% if search_query or selected_category or selected_status or selected_sort != 'newest' %}
                         <a href="/" class="btn btn-secondary">Reset</a>
                     {% endif %}
-                    <a href="/export/csv?q={{ search_query }}&category={{ selected_category }}&status={{ selected_status }}" class="btn btn-secondary" title="Export matching books to CSV">📥 Export CSV</a>
+                    <a href="/export/csv?q={{ search_query }}&category={{ selected_category }}&status={{ selected_status }}" class="btn btn-secondary" title="Export matching books to CSV">📥 CSV</a>
                 </form>
 
                 <!-- Books Table -->
-                <div class="table-responsive">
-                    <table class="custom-table">
+                <div class="table-wrapper">
+                    <table class="data-table">
                         <thead>
                             <tr>
-                                <th>#</th>
-                                <th>Title</th>
-                                <th>Author</th>
+                                <th>Cover</th>
+                                <th>Title & Author</th>
                                 <th>Category</th>
+                                <th>Copies</th>
                                 <th>Status</th>
                                 <th style="text-align: right;">Actions</th>
                             </tr>
@@ -192,10 +201,25 @@
                             {% if books %}
                                 {% for book in books %}
                                 <tr>
-                                    <td><strong>{{ book.id }}</strong></td>
-                                    <td><strong>{{ book.title }}</strong></td>
-                                    <td>{{ book.author }}</td>
+                                    <td>
+                                        {% if book.cover_url %}
+                                            <img src="{{ book.cover_url }}" alt="{{ book.title }}" class="book-thumb" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                            <div class="book-thumb-placeholder" style="display:none;">📖</div>
+                                        {% else %}
+                                            <div class="book-thumb-placeholder">📖</div>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <strong>{{ book.title }}</strong>
+                                        <div style="font-size: 0.85em; opacity: 0.85;">by {{ book.author }}</div>
+                                        {% if book.isbn %}
+                                            <span style="font-size: 0.75em; background: rgba(0,0,0,0.06); padding: 1px 5px; border-radius: 4px; font-family: monospace;">ISBN: {{ book.isbn }}</span>
+                                        {% endif %}
+                                    </td>
                                     <td><span class="badge badge-category">{{ book.category }}</span></td>
+                                    <td>
+                                        <strong>{{ book.available_copies if book.available_copies is not none else 1 }}</strong> / {{ book.total_copies or 1 }}
+                                    </td>
                                     <td>
                                         {% if book.status == 'Available' %}
                                             <span class="badge badge-available">Available</span>

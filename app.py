@@ -81,17 +81,17 @@ def home():
     search_query = request.args.get("q", "").strip()
     category_filter = request.args.get("category", "").strip()
     status_filter = request.args.get("status", "").strip()
+    sort_by = request.args.get("sort", "newest").strip()
 
     conn = get_db_connection()
 
-    # Build SQL query based on filters
     query = "SELECT * FROM books WHERE 1=1"
     params = []
 
     if search_query:
-        query += " AND (title LIKE ? OR author LIKE ? OR category LIKE ?)"
+        query += " AND (title LIKE ? OR author LIKE ? OR category LIKE ? OR isbn LIKE ?)"
         wildcard = f"%{search_query}%"
-        params.extend([wildcard, wildcard, wildcard])
+        params.extend([wildcard, wildcard, wildcard, wildcard])
 
     if category_filter:
         query += " AND category = ?"
@@ -101,16 +101,23 @@ def home():
         query += " AND status = ?"
         params.append(status_filter)
 
-    query += " ORDER BY id DESC"
+    if sort_by == "title_asc":
+        query += " ORDER BY title ASC"
+    elif sort_by == "title_desc":
+        query += " ORDER BY title DESC"
+    elif sort_by == "author_asc":
+        query += " ORDER BY author ASC"
+    elif sort_by == "category_asc":
+        query += " ORDER BY category ASC"
+    else:
+        query += " ORDER BY id DESC"
 
     books = conn.execute(query, params).fetchall()
 
-    # Get distinct categories for filter dropdown
     categories = conn.execute(
         "SELECT DISTINCT category FROM books ORDER BY category"
     ).fetchall()
 
-    # Calculate statistics
     total_books = conn.execute("SELECT COUNT(*) FROM books").fetchone()[0]
     available_books = conn.execute(
         "SELECT COUNT(*) FROM books WHERE status = 'Available'"
@@ -138,7 +145,8 @@ def home():
         stats=stats,
         search_query=search_query,
         selected_category=category_filter,
-        selected_status=status_filter
+        selected_status=status_filter,
+        selected_sort=sort_by
     )
 
 
