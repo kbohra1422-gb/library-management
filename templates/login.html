@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block title %}Sign In - LibManager{% endblock %}
+
+{% block content %}
+<div class="auth-wrapper">
+  <div class="auth-card">
+    <div class="auth-header">
+      <div class="auth-logo">📚</div>
+      <h1 class="auth-title">Welcome to LibManager</h1>
+      <p class="auth-subtitle">Sign in to access your library catalog & loans</p>
+    </div>
+
+    <!-- Quick Demo Sign-In Buttons -->
+    <div class="demo-pills-title">⚡ Instant Demo Sign-In</div>
+    <div class="demo-pills">
+      <button type="button" class="demo-pill-btn" onclick="fillCredentials('admin', 'admin123')">
+        <span>👑</span> Admin
+      </button>
+      <button type="button" class="demo-pill-btn" onclick="fillCredentials('student', 'student123')">
+        <span>🎓</span> Student
+      </button>
+    </div>
+
+    <!-- Login Form -->
+    <form action="{{ url_for('login_page', next=request.args.get('next')) }}" method="POST">
+      <div class="form-group">
+        <label class="form-label" for="loginUsername">Username or Email</label>
+        <input type="text" name="username" id="loginUsername" class="form-control" value="{{ prefill_user or '' }}" placeholder="e.g. admin or student" required autofocus>
+      </div>
+
+      <div class="form-group">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.45rem;">
+          <label class="form-label" for="loginPassword" style="margin-bottom: 0;">Password</label>
+          <button type="button" onclick="togglePasswordVisibility()" style="background: none; border: none; color: var(--primary-400); font-size: 0.8rem; cursor: pointer;">
+            <span id="showPwText">Show</span>
+          </button>
+        </div>
+        <input type="password" name="password" id="loginPassword" class="form-control" placeholder="••••••••" required>
+      </div>
+
+      <div style="display: flex; justify-content: space-between; align-items: center; margin: 1.25rem 0 1.5rem;">
+        <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.88rem; cursor: pointer; color: var(--text-muted);">
+          <input type="checkbox" name="remember" value="1" style="accent-color: var(--primary-500); width: 16px; height: 16px;">
+          <span>Remember me</span>
+        </label>
+        <span style="font-size: 0.85rem; color: var(--text-subtle);">Demo: admin / admin123</span>
+      </div>
+
+      <button type="submit" class="btn btn-primary" style="width: 100%; font-size: 1rem; padding: 0.8rem;">
+        <span>🔐</span> Sign In to Account
+      </button>
+
+      <div style="text-align: center; margin-top: 1.75rem; font-size: 0.9rem; color: var(--text-muted);">
+        Don't have an account yet? 
+        <a href="{{ url_for('register_page') }}" style="color: var(--primary-400); font-weight: 600; text-decoration: none;">Create an account</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  function fillCredentials(user, pass) {
+    document.getElementById('loginUsername').value = user;
+    document.getElementById('loginPassword').value = pass;
+    // Highlight inputs momentarily
+    const card = document.querySelector('.auth-card');
+    card.style.boxShadow = '0 0 25px rgba(99, 102, 241, 0.4)';
+    setTimeout(() => {
+      card.style.boxShadow = '';
+    }, 600);
+  }
+
+  function togglePasswordVisibility() {
+    const pw = document.getElementById('loginPassword');
+    const txt = document.getElementById('showPwText');
+    if (pw.type === 'password') {
+      pw.type = 'text';
+      txt.textContent = 'Hide';
+    } else {
+      pw.type = 'password';
+      txt.textContent = 'Show';
+    }
+  }
+</script>
+{% endblock %}

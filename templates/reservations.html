@@ -1,170 +1,169 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Book Reservations & Holds - Library System</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
-<body>
+{% extends "base.html" %}
 
-    <!-- Sticky Navigation Bar -->
-    <nav class="navbar">
-        <div class="nav-container">
-            <a href="/" class="brand">
-                <span class="brand-icon">📚</span>
-                <span>LibManager</span>
-            </a>
-            <div class="nav-links">
-                <a href="/" class="nav-item">Books Catalog</a>
-                <a href="/members" class="nav-item">Members</a>
-                <a href="/borrow" class="nav-item">Issue / Return</a>
-                <a href="/reservations" class="nav-item active">Reservations</a>
-                <a href="/analytics" class="nav-item">Analytics</a>
-                <a href="/help" class="nav-item">Help & FAQ</a>
-                <a href="/about" class="nav-item">About</a>
-                <button type="button" id="theme-toggle" class="theme-btn" onclick="toggleTheme()" title="Toggle Dark / Light Theme">
-                    <span id="theme-icon">🌙</span>
-                    <span id="theme-label">Dark</span>
-                </button>
-            </div>
-        </div>
-    </nav>
+{% block title %}Book Hold Queue & Reservations{% endblock %}
 
-    <div class="container">
+{% block content %}
+<div class="container" style="padding-top: 1.5rem; padding-bottom: 3rem;">
 
-        <!-- Flash Messages -->
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                <div class="flash-messages">
-                    {% for category, message in messages %}
-                        <div class="alert alert-{{ category }}">
-                            <span>{{ message }}</span>
-                        </div>
-                    {% endfor %}
-                </div>
-            {% endif %}
-        {% endwith %}
+  <!-- Header -->
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+    <div>
+      <h1 class="page-title" style="margin-bottom: 0.25rem;">
+        <span>📌</span> Book Holds & Reservations Queue
+      </h1>
+      <p style="color: var(--text-muted); font-size: 0.95rem;">
+        Place patrons on priority hold queues for titles currently borrowed by other members
+      </p>
+    </div>
+    <button type="button" class="btn btn-primary" onclick="openReservationModal()">
+      <span>➕</span> Place Book on Hold
+    </button>
+  </div>
 
-        <!-- Hero Header -->
-        <div class="hero-header">
-            <h1 class="hero-title">📌 Book Reservations & Hold Queue</h1>
-            <p class="hero-subtitle">Place a hold request for currently borrowed books to be notified when available.</p>
-        </div>
+  <!-- Information Banner -->
+  <div class="card" style="background: rgba(99, 102, 241, 0.06); border-color: rgba(99, 102, 241, 0.2); margin-bottom: 2rem;">
+    <div style="display: flex; gap: 1rem; align-items: flex-start;">
+      <span style="font-size: 1.75rem;">💡</span>
+      <div>
+        <h3 style="font-size: 1rem; font-weight: 700; margin-bottom: 0.25rem; color: var(--primary-400);">
+          How Priority Reservation Works
+        </h3>
+        <p style="font-size: 0.88rem; color: var(--text-muted); line-height: 1.5;">
+          When an item is checked out (`Borrowed`), members can reserve their spot in line. As soon as the current borrower returns the book, the patron next in the hold queue will be notified and the copy held for 48 hours.
+        </p>
+      </div>
+    </div>
+  </div>
 
-        <div style="display: grid; grid-template-columns: 350px 1fr; gap: 20px; align-items: start;">
-            
-            <!-- Reservation Form Card -->
-            <div class="card">
-                <h3 class="card-title">🔖 Place Hold Request</h3>
-                {% if borrowed_books and members %}
-                    <form action="/reservations/create" method="POST">
-                        <div class="form-group">
-                            <label for="book_id">Select Borrowed Book *</label>
-                            <select id="book_id" name="book_id" class="form-control" required>
-                                <option value="">-- Choose Borrowed Book --</option>
-                                {% for b in borrowed_books %}
-                                    <option value="{{ b.id }}">{{ b.title }} ({{ b.author }})</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="member_id">Select Member *</label>
-                            <select id="member_id" name="member_id" class="form-control" required>
-                                <option value="">-- Choose Member --</option>
-                                {% for m in members %}
-                                    <option value="{{ m.id }}">{{ m.name }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <button type="submit" class="btn btn-primary btn-block">Place Reservation</button>
-                    </form>
-                {% else %}
-                    <div style="padding: 15px; background: rgba(0,123,255,0.08); border-radius: 8px;">
-                        <p style="font-size: 0.9em; opacity: 0.85;">⚠️ No books are currently borrowed or no members are available to place reservations.</p>
-                    </div>
-                {% endif %}
-            </div>
-
-            <!-- Reservations Table Card -->
-            <div class="card">
-                <h3 class="card-title">📋 Pending & Active Holds ({{ reservations|length }})</h3>
-                <div class="table-wrapper">
-                    {% if reservations %}
-                        <table class="data-table">
-                            <thead>
-                                <tr>
-                                    <th>Hold ID</th>
-                                    <th>Book Details</th>
-                                    <th>Reserved By</th>
-                                    <th>Date Requested</th>
-                                    <th>Status</th>
-                                    <th>Action</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for r in reservations %}
-                                    <tr>
-                                        <td>#RES-{{ r.id }}</td>
-                                        <td>
-                                            <strong>{{ r.book_title }}</strong>
-                                            <div style="font-size: 0.85em; opacity: 0.8;">{{ r.book_author }}</div>
-                                        </td>
-                                        <td>
-                                            <strong>{{ r.member_name }}</strong>
-                                            <div style="font-size: 0.85em; opacity: 0.8;">{{ r.member_email or 'N/A' }}</div>
-                                        </td>
-                                        <td>{{ r.request_date[:10] if r.request_date else 'N/A' }}</td>
-                                        <td>
-                                            <span class="badge {% if r.status == 'Pending' %}badge-borrowed{% else %}badge-available{% endif %}">
-                                                {{ r.status }}
-                                            </span>
-                                        </td>
-                                        <td>
-                                            {% if r.status == 'Pending' %}
-                                                <a href="/reservations/cancel/{{ r.id }}" class="btn btn-sm btn-danger" onclick="return confirm('Cancel this hold request?')">Cancel Hold</a>
-                                            {% else %}
-                                                <span style="font-size: 0.85em; opacity: 0.7;">Completed</span>
-                                            {% endif %}
-                                        </td>
-                                    </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    {% else %}
-                        <div style="padding: 30px; text-align: center; color: var(--text-muted);">
-                            <div style="font-size: 2.5rem; margin-bottom: 8px;">📌</div>
-                            <p>No active reservations or hold requests in queue.</p>
-                        </div>
-                    {% endif %}
-                </div>
-            </div>
-
-        </div>
-
+  <!-- Reservations Table -->
+  <div class="card" style="padding: 0; overflow: hidden;">
+    <div class="card-header" style="padding: 1.25rem 1.5rem; margin-bottom: 0;">
+      <h2 class="card-title" style="font-size: 1.15rem;">
+        <span>📋</span> Active Queue ({{ reservations|length }} requests)
+      </h2>
     </div>
 
-    <script>
-        function toggleTheme() {
-            const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
-            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-            document.documentElement.setAttribute('data-theme', newTheme);
-            localStorage.setItem('theme', newTheme);
-            updateThemeButton(newTheme);
-        }
-        function updateThemeButton(theme) {
-            const icon = document.getElementById('theme-icon');
-            const label = document.getElementById('theme-label');
-            if (icon && label) {
-                icon.textContent = theme === 'dark' ? '☀️' : '🌙';
-                label.textContent = theme === 'dark' ? 'Light' : 'Dark';
-            }
-        }
-        (function() {
-            const savedTheme = localStorage.getItem('theme') || 'light';
-            document.documentElement.setAttribute('data-theme', savedTheme);
-            updateThemeButton(savedTheme);
-        })();
-    </script>
-</body>
-</html>
+    <div class="table-responsive">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Hold ID</th>
+            <th>Book Title</th>
+            <th>Requested By</th>
+            <th>Request Date</th>
+            <th>Book Inventory Status</th>
+            <th>Hold Status</th>
+            <th style="text-align: right;">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if reservations|length == 0 %}
+          <tr>
+            <td colspan="7" style="text-align: center; padding: 3rem; color: var(--text-muted);">
+              No active reservations in the queue. Click "Place Book on Hold" to reserve a borrowed title.
+            </td>
+          </tr>
+          {% else %}
+          {% for res in reservations %}
+          <tr>
+            <td style="font-family: var(--font-mono); color: var(--text-subtle);">#{{ res.id }}</td>
+            <td>
+              <div style="font-weight: 700;">{{ res.book_title }}</div>
+              <div style="font-size: 0.8rem; color: var(--text-muted);">by {{ res.book_author }}</div>
+            </td>
+            <td>
+              <div style="font-weight: 600;">{{ res.member_name }}</div>
+              <div style="font-size: 0.8rem; color: var(--text-subtle);">{{ res.member_email or '—' }}</div>
+            </td>
+            <td>{{ res.request_date[:10] if res.request_date else 'Recent' }}</td>
+            <td>
+              {% if res.book_status == 'Available' %}
+              <span class="badge badge-success"><span class="badge-dot"></span> Book Returned (Ready!)</span>
+              {% else %}
+              <span class="badge badge-warning"><span class="badge-dot"></span> On Loan</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if res.status == 'Pending' %}
+              <span class="badge badge-info"><span class="badge-dot"></span> Waiting Queue</span>
+              {% elif res.status == 'Fulfilled' %}
+              <span class="badge badge-success"><span class="badge-dot"></span> Fulfilled</span>
+              {% else %}
+              <span class="badge badge-neutral"><span class="badge-dot"></span> Cancelled</span>
+              {% endif %}
+            </td>
+            <td style="text-align: right;">
+              {% if res.status == 'Pending' %}
+              <a href="{{ url_for('cancel_reservation', id=res.id) }}" class="btn btn-danger btn-sm" onclick="return confirm('Cancel this reservation?')" title="Cancel Hold">
+                Cancel
+              </a>
+              {% else %}
+              <span style="color: var(--text-subtle); font-size: 0.85rem;">—</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Create Reservation -->
+<div class="modal-backdrop" id="reservationModal">
+  <div class="modal-dialog">
+    <div class="modal-header">
+      <h2 class="modal-title"><span>📌</span> Place Title on Hold</h2>
+      <button type="button" class="modal-close" onclick="closeReservationModal()">&times;</button>
+    </div>
+    <form action="{{ url_for('create_reservation') }}" method="POST">
+      <div class="form-group">
+        <label class="form-label" for="resBookSelect">Select Borrowed Book *</label>
+        <select name="book_id" id="resBookSelect" class="form-select" required>
+          <option value="">-- Choose currently borrowed book --</option>
+          {% for b in borrowed_books %}
+          <option value="{{ b.id }}">{{ b.title }} (by {{ b.author }})</option>
+          {% endfor %}
+        </select>
+        {% if borrowed_books|length == 0 %}
+        <div class="form-hint" style="color: var(--status-warning);">
+          Note: Currently no books are marked as borrowed. You can only place holds on titles that are checked out.
+        </div>
+        {% endif %}
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="resMemberSelect">Select Reserving Member *</label>
+        <select name="member_id" id="resMemberSelect" class="form-select" required>
+          <option value="">-- Choose member requesting hold --</option>
+          {% for m in members %}
+          <option value="{{ m.id }}">{{ m.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 2rem;">
+        <button type="button" class="btn btn-secondary" onclick="closeReservationModal()">Cancel</button>
+        <button type="submit" class="btn btn-primary" {% if borrowed_books|length == 0 %}disabled{% endif %}>
+          <span>📌</span> Place Reservation
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  function openReservationModal() {
+    document.getElementById('reservationModal').classList.add('active');
+  }
+  function closeReservationModal() {
+    document.getElementById('reservationModal').classList.remove('active');
+  }
+  document.getElementById('reservationModal').addEventListener('click', function(e) {
+    if (e.target === this) closeReservationModal();
+  });
+</script>
+{% endblock %}

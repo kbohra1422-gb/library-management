@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block title %}Create Account - LibManager{% endblock %}
+
+{% block content %}
+<div class="auth-wrapper">
+  <div class="auth-card" style="max-width: 500px;">
+    <div class="auth-header">
+      <div class="auth-logo">📚</div>
+      <h1 class="auth-title">Join LibManager</h1>
+      <p class="auth-subtitle">Create a patron or staff account for instant library access</p>
+    </div>
+
+    <form action="{{ url_for('register_page') }}" method="POST">
+      <div class="form-group">
+        <label class="form-label" for="regFullName">Full Legal Name *</label>
+        <input type="text" name="full_name" id="regFullName" class="form-control" value="{{ prefill_data.full_name if prefill_data else '' }}" placeholder="e.g. Priyanshu Sharma" required>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label" for="regUsername">Username *</label>
+          <input type="text" name="username" id="regUsername" class="form-control" value="{{ prefill_data.username if prefill_data else '' }}" placeholder="priyanshu" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="regRole">Role</label>
+          <select name="role" id="regRole" class="form-select">
+            <option value="Student" {% if prefill_data and prefill_data.role == 'Student' %}selected{% endif %}>Student</option>
+            <option value="Faculty" {% if prefill_data and prefill_data.role == 'Faculty' %}selected{% endif %}>Faculty</option>
+            <option value="Librarian" {% if prefill_data and prefill_data.role == 'Librarian' %}selected{% endif %}>Librarian</option>
+            <option value="Admin" {% if prefill_data and prefill_data.role == 'Admin' %}selected{% endif %}>Admin</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="regEmail">Email Address *</label>
+        <input type="email" name="email" id="regEmail" class="form-control" value="{{ prefill_data.email if prefill_data else '' }}" placeholder="name@domain.edu" required>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label" for="regPassword">Password *</label>
+          <input type="password" name="password" id="regPassword" class="form-control" placeholder="Min. 6 chars" required minlength="6">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="regConfirmPassword">Confirm Password *</label>
+          <input type="password" name="confirm_password" id="regConfirmPassword" class="form-control" placeholder="Repeat password" required minlength="6">
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-primary" style="width: 100%; font-size: 1rem; padding: 0.8rem; margin-top: 1rem;">
+        <span>✨</span> Register & Sign In
+      </button>
+
+      <div style="text-align: center; margin-top: 1.75rem; font-size: 0.9rem; color: var(--text-muted);">
+        Already have an account? 
+        <a href="{{ url_for('login_page') }}" style="color: var(--primary-400); font-weight: 600; text-decoration: none;">Sign in here</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

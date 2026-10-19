@@ -1,221 +1,208 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Issue / Return & Fine Tracker - Library System</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
-<body>
+{% extends "base.html" %}
 
-    <!-- Sticky Navigation Bar -->
-    <nav class="navbar">
-        <div class="nav-container">
-            <a href="/" class="brand">
-                <span class="brand-icon">📚</span>
-                <span>LibManager</span>
-            </a>
-            <div class="nav-links">
-                <a href="/" class="nav-item">Books Catalog</a>
-                <a href="/members" class="nav-item">Members</a>
-                <a href="/borrow" class="nav-item active">Issue / Return</a>
-                <a href="/analytics" class="nav-item">Analytics</a>
-                <a href="/help" class="nav-item">Help & FAQ</a>
-                <a href="/about" class="nav-item">About</a>
-                <button type="button" id="theme-toggle" class="theme-btn" onclick="toggleTheme()" title="Toggle Dark / Light Theme">
-                    <span id="theme-icon">🌙</span>
-                    <span id="theme-label">Dark</span>
-                </button>
-            </div>
-        </div>
-    </nav>
+{% block title %}Circulation & Issue/Return Desk{% endblock %}
 
-    <div class="container">
+{% block content %}
+<div class="container" style="padding-top: 1.5rem; padding-bottom: 3rem;">
 
-        <!-- Flash Messages -->
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                <div class="flash-messages">
-                    {% for category, message in messages %}
-                        <div class="alert alert-{{ category }}">
-                            <span>{{ message }}</span>
-                        </div>
-                    {% endfor %}
-                </div>
-            {% endif %}
-        {% endwith %}
-
-        <!-- Hero Header -->
-        <div class="hero-header">
-            <h1 class="hero-title">🔄 Book Issue, Return & Fine Tracker</h1>
-            <p class="hero-subtitle">Issue books to members with automated due date tracking and fine calculation (₹5/day overdue fee).</p>
-        </div>
-
-        <!-- Stats Overview -->
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-icon icon-orange">📖</div>
-                <div class="stat-info">
-                    <h4>Active Issued Books</h4>
-                    <div class="stat-value">{{ stats.issued }}</div>
-                </div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon icon-purple">💰</div>
-                <div class="stat-info">
-                    <h4>Total Fines Collected</h4>
-                    <div class="stat-value">₹{{ "%.2f"|format(stats.total_fines) }}</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Issue Book & Borrow Transactions Grid -->
-        <div class="content-grid">
-
-            <!-- Issue Book Form Card -->
-            <div class="card form-card">
-                <h3>📤 Issue Book to Member</h3>
-                {% if available_books and members %}
-                    <form action="/borrow/issue" method="POST">
-                        <div class="form-group">
-                            <label for="book_id">Select Book *</label>
-                            <select id="book_id" name="book_id" required>
-                                <option value="">-- Choose Available Book --</option>
-                                {% for b in available_books %}
-                                    <option value="{{ b.id }}">{{ b.title }} (by {{ b.author }})</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="member_id">Select Member *</label>
-                            <select id="member_id" name="member_id" required>
-                                <option value="">-- Choose Registered Member --</option>
-                                {% for m in members %}
-                                    <option value="{{ m.id }}">{{ m.name }} ({{ m.member_type }})</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="due_date">Due Return Date *</label>
-                            <input type="date" id="due_date" name="due_date" value="{{ default_due_date }}" required>
-                            <small style="opacity: 0.75; display: block; margin-top: 4px;">Default: +14 days from today.</small>
-                        </div>
-                        <button type="submit" class="btn btn-primary btn-block">Confirm Book Issue</button>
-                    </form>
-                {% else %}
-                    <div style="padding: 15px; background: rgba(255, 193, 7, 0.15); border-radius: 8px; color: var(--text-color, #333);">
-                        {% if not available_books %}
-                            <p>⚠️ No available books right now to issue.</p>
-                        {% endif %}
-                        {% if not members %}
-                            <p>⚠️ No members registered. Please <a href="/members">register a member first</a>.</p>
-                        {% endif %}
-                    </div>
-                {% endif %}
-            </div>
-
-            <!-- Borrow Records Table Card -->
-            <div class="card table-card">
-                <div class="table-header">
-                    <h3>📋 Borrow Transactions Log ({{ records|length }})</h3>
-                    <form action="/borrow" method="GET" class="search-form">
-                        <input type="text" name="q" value="{{ search_query }}" placeholder="Search book, member, status...">
-                        <button type="submit" class="btn btn-secondary">Search</button>
-                        {% if search_query %}
-                            <a href="/borrow" class="btn btn-clear">Clear</a>
-                        {% endif %}
-                    </form>
-                </div>
-
-                <div class="table-wrapper">
-                    {% if records %}
-                        <table class="data-table">
-                            <thead>
-                                <tr>
-                                    <th>Ref ID</th>
-                                    <th>Book & Borrower</th>
-                                    <th>Dates (Issue / Due)</th>
-                                    <th>Status</th>
-                                    <th>Fine</th>
-                                    <th>Action</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for r in records %}
-                                    <tr>
-                                        <td>#{{ r.id }}</td>
-                                        <td>
-                                            <strong>{{ r.book_title }}</strong>
-                                            <div style="font-size: 0.85em; opacity: 0.8;">👤 {{ r.member_name }}</div>
-                                        </td>
-                                        <td>
-                                            <div>📅 Issued: {{ r.issue_date }}</div>
-                                            <div style="font-size: 0.85em; color: {% if r.overdue_days > 0 %}#e74c3c{% else %}inherit{% endif %}; font-weight: {% if r.overdue_days > 0 %}bold{% else %}normal{% endif %};">
-                                                ⏳ Due: {{ r.due_date }}
-                                                {% if r.overdue_days > 0 %}
-                                                    <span style="font-size: 0.8em; background: #e74c3c; color: #fff; padding: 2px 6px; border-radius: 4px; margin-left: 4px;">{{ r.overdue_days }}d OVERDUE</span>
-                                                {% endif %}
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <span class="status-badge status-{{ 'borrowed' if r.status == 'Issued' else 'available' }}">
-                                                {{ r.status }}
-                                            </span>
-                                        </td>
-                                        <td>
-                                            {% if r.calculated_fine > 0 %}
-                                                <strong style="color: #e74c3c;">₹{{ "%.2f"|format(r.calculated_fine) }}</strong>
-                                            {% else %}
-                                                <span style="opacity: 0.6;">₹0.00</span>
-                                            {% endif %}
-                                        </td>
-                                        <td>
-                                            <div style="display: flex; gap: 4px; flex-wrap: wrap; align-items: center;">
-                                                {% if r.status == 'Issued' %}
-                                                    <a href="/borrow/return/{{ r.id }}" class="btn-sm btn-edit-sm" onclick="return confirm('Confirm book return for {{ r.book_title }}?')">Return</a>
-                                                {% else %}
-                                                    <span style="font-size: 0.85em; opacity: 0.7;">Returned</span>
-                                                {% endif %}
-                                                <a href="/borrow/receipt/{{ r.id }}" class="btn-sm" style="background: rgba(78, 115, 223, 0.15); color: #4e73df; padding: 4px 8px; border-radius: 4px; text-decoration: none; font-size: 0.85em; font-weight: 600;">📄 Slip</a>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    {% else %}
-                        <div class="empty-state">
-                            <div class="empty-icon">📖</div>
-                            <p>No borrow records found.</p>
-                        </div>
-                    {% endif %}
-                </div>
-            </div>
-
-        </div>
+  <!-- Header -->
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+    <div>
+      <h1 class="page-title" style="margin-bottom: 0.25rem;">
+        <span>🔄</span> Circulation & Borrow Desk
+      </h1>
+      <p style="color: var(--text-muted); font-size: 0.95rem;">
+        Issue books with automated 14-day return period, calculate overdue late fines, and print slips
+      </p>
     </div>
+    <button type="button" class="btn btn-primary" onclick="openIssueModal()">
+      <span>⚡</span> Issue Book to Member
+    </button>
+  </div>
 
-    <script>
-        function toggleTheme() {
-            const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
-            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-            document.documentElement.setAttribute('data-theme', newTheme);
-            localStorage.setItem('theme', newTheme);
-            updateThemeButton(newTheme);
-        }
-        function updateThemeButton(theme) {
-            const icon = document.getElementById('theme-icon');
-            const label = document.getElementById('theme-label');
-            if (icon && label) {
-                icon.textContent = theme === 'dark' ? '☀️' : '🌙';
-                label.textContent = theme === 'dark' ? 'Light' : 'Dark';
-            }
-        }
-        (function() {
-            const savedTheme = localStorage.getItem('theme') || 'light';
-            document.documentElement.setAttribute('data-theme', savedTheme);
-            updateThemeButton(savedTheme);
-        })();
-    </script>
-</body>
-</html>
+  <!-- Circulation Stats -->
+  <div class="stats-grid" style="margin-bottom: 1.5rem;">
+    <div class="stat-card warning">
+      <div class="stat-header">
+        <span class="stat-title">Active Loans</span>
+        <div class="stat-icon">⏳</div>
+      </div>
+      <div class="stat-value" style="color: var(--status-warning);">{{ stats.issued }}</div>
+      <div class="stat-subtext">Books currently in circulation</div>
+    </div>
+    <div class="stat-card danger">
+      <div class="stat-header">
+        <span class="stat-title">Accumulated Fines</span>
+        <div class="stat-icon">💰</div>
+      </div>
+      <div class="stat-value" style="color: var(--status-danger);">₹{{ "%.2f"|format(stats.total_fines) }}</div>
+      <div class="stat-subtext">Calculated at ₹5.00 / day overdue</div>
+    </div>
+    <div class="stat-card success">
+      <div class="stat-header">
+        <span class="stat-title">Books Available</span>
+        <div class="stat-icon">📚</div>
+      </div>
+      <div class="stat-value" style="color: var(--status-success);">{{ available_books|length }}</div>
+      <div class="stat-subtext">Ready for checkout</div>
+    </div>
+  </div>
+
+  <!-- Search Filter -->
+  <div class="card" style="padding: 1.25rem; margin-bottom: 1.5rem;">
+    <form method="GET" action="{{ url_for('borrow_page') }}">
+      <div class="toolbar" style="margin-bottom: 0;">
+        <div class="search-box">
+          <span class="search-icon">🔍</span>
+          <input type="text" name="q" value="{{ search_query }}" class="form-control" placeholder="Search loans by book title, member name, or status...">
+        </div>
+        <button type="submit" class="btn btn-secondary">Search</button>
+        {% if search_query %}
+        <a href="{{ url_for('borrow_page') }}" class="btn btn-secondary">Clear</a>
+        {% endif %}
+      </div>
+    </form>
+  </div>
+
+  <!-- Circulation Logs Table -->
+  <div class="card" style="padding: 0; overflow: hidden;">
+    <div class="table-responsive">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Loan ID</th>
+            <th>Book Title</th>
+            <th>Borrower</th>
+            <th>Issue Date</th>
+            <th>Due Date</th>
+            <th>Status / Overdue</th>
+            <th>Fine</th>
+            <th style="text-align: right;">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if records|length == 0 %}
+          <tr>
+            <td colspan="8" style="text-align: center; padding: 3rem; color: var(--text-muted);">
+              No circulation records found. Click "Issue Book to Member" to initiate a checkout.
+            </td>
+          </tr>
+          {% else %}
+          {% for r in records %}
+          <tr>
+            <td style="font-family: var(--font-mono); color: var(--text-subtle);">#{{ r.id }}</td>
+            <td>
+              <div style="font-weight: 700;">{{ r.book_title }}</div>
+              <div style="font-size: 0.8rem; color: var(--text-muted);">by {{ r.book_author }}</div>
+            </td>
+            <td>
+              <div style="font-weight: 600;">{{ r.member_name }}</div>
+              <div style="font-size: 0.8rem; color: var(--text-subtle);">{{ r.member_email or 'No email' }}</div>
+            </td>
+            <td>{{ r.issue_date }}</td>
+            <td>
+              <span style="font-weight: 600; {% if r.overdue_days > 0 and r.status == 'Issued' %}color: var(--status-danger);{% endif %}">
+                {{ r.due_date }}
+              </span>
+            </td>
+            <td>
+              {% if r.status == 'Issued' %}
+                {% if r.overdue_days > 0 %}
+                <span class="badge badge-danger">
+                  <span class="badge-dot"></span> Overdue ({{ r.overdue_days }}d)
+                </span>
+                {% else %}
+                <span class="badge badge-warning">
+                  <span class="badge-dot"></span> Issued
+                </span>
+                {% endif %}
+              {% else %}
+              <span class="badge badge-success">
+                <span class="badge-dot"></span> Returned
+              </span>
+              {% endif %}
+            </td>
+            <td>
+              {% if r.calculated_fine > 0 %}
+              <span style="font-weight: 700; color: var(--status-danger);">₹{{ "%.2f"|format(r.calculated_fine) }}</span>
+              {% else %}
+              <span style="color: var(--text-subtle);">₹0.00</span>
+              {% endif %}
+            </td>
+            <td style="text-align: right;">
+              <div style="display: inline-flex; gap: 0.35rem;">
+                <a href="{{ url_for('borrow_receipt', id=r.id) }}" class="btn btn-secondary btn-sm" target="_blank" title="Print Transaction Slip">
+                  <span>📄</span> Slip
+                </a>
+                {% if r.status == 'Issued' %}
+                <a href="{{ url_for('return_book', id=r.id) }}" class="btn btn-success btn-sm" onclick="return confirm('Confirm return for {{ r.book_title }}?')" title="Mark as Returned">
+                  <span>📥</span> Return
+                </a>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Issue Book Form -->
+<div class="modal-backdrop" id="issueModal">
+  <div class="modal-dialog">
+    <div class="modal-header">
+      <h2 class="modal-title"><span>🔄</span> Issue Book to Patron</h2>
+      <button type="button" class="modal-close" onclick="closeIssueModal()">&times;</button>
+    </div>
+    <form action="{{ url_for('issue_book') }}" method="POST">
+      <div class="form-group">
+        <label class="form-label" for="issueBookSelect">Select Available Book *</label>
+        <select name="book_id" id="issueBookSelect" class="form-select" required>
+          <option value="">-- Choose a title from available stock --</option>
+          {% for b in available_books %}
+          <option value="{{ b.id }}">{{ b.title }} (by {{ b.author }})</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="issueMemberSelect">Select Registered Member *</label>
+        <select name="member_id" id="issueMemberSelect" class="form-select" required>
+          <option value="">-- Choose member --</option>
+          {% for m in members %}
+          <option value="{{ m.id }}">{{ m.name }} ({{ m.member_type }})</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="issueDueDate">Return Due Date</label>
+        <input type="date" name="due_date" id="issueDueDate" class="form-control" value="{{ default_due_date }}" min="{{ today_date }}" required>
+        <div class="form-hint">Standard loan policy sets return due date to 14 days from today. Late returns incur ₹5/day fine.</div>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 2rem;">
+        <button type="button" class="btn btn-secondary" onclick="closeIssueModal()">Cancel</button>
+        <button type="submit" class="btn btn-primary"><span>⚡</span> Complete Book Issue</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  function openIssueModal() {
+    document.getElementById('issueModal').classList.add('active');
+  }
+  function closeIssueModal() {
+    document.getElementById('issueModal').classList.remove('active');
+  }
+  document.getElementById('issueModal').addEventListener('click', function(e) {
+    if (e.target === this) closeIssueModal();
+  });
+</script>
+{% endblock %}

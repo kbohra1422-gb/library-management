@@ -1,0 +1,271 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard & Overview{% endblock %}
+
+{% block content %}
+<div class="container" style="padding-top: 1.5rem; padding-bottom: 3rem;">
+  
+  <!-- Hero Section -->
+  <section class="page-hero">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1.5rem;">
+      <div>
+        <div class="hero-tagline">
+          <span>⚡</span> Intelligent Library Automation System
+        </div>
+        <h1 class="page-title">
+          Welcome back, <span>{{ current_user.full_name or current_user.username }}</span>
+        </h1>
+        <p class="page-subtitle">
+          Real-time catalog monitoring, automated circulation tracking, ISBN auto-fetching, and digital library services.
+        </p>
+      </div>
+      <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; margin-top: 0.5rem;">
+        <a href="{{ url_for('books_catalog') }}" class="btn btn-primary" id="btnBrowseCatalog">
+          <span>📖</span> Explore Catalog
+        </a>
+        <a href="{{ url_for('borrow_page') }}" class="btn btn-secondary" id="btnQuickIssue">
+          <span>🔄</span> Issue / Return
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Key Performance Indicator Cards (KPIs) -->
+  <section class="stats-grid" id="dashboardStatsGrid">
+    <div class="stat-card">
+      <div class="stat-header">
+        <span class="stat-title">Total Inventory</span>
+        <div class="stat-icon">📚</div>
+      </div>
+      <div class="stat-value">{{ stats.total }}</div>
+      <div class="stat-subtext">Registered catalog titles</div>
+    </div>
+
+    <div class="stat-card success">
+      <div class="stat-header">
+        <span class="stat-title">Available Copies</span>
+        <div class="stat-icon">✅</div>
+      </div>
+      <div class="stat-value" style="color: var(--status-success);">{{ stats.available }}</div>
+      <div class="stat-subtext">Ready for immediate issue</div>
+    </div>
+
+    <div class="stat-card warning">
+      <div class="stat-header">
+        <span class="stat-title">Active Loans</span>
+        <div class="stat-icon">⏳</div>
+      </div>
+      <div class="stat-value" style="color: var(--status-warning);">{{ stats.borrowed }}</div>
+      <div class="stat-subtext">Currently checked out</div>
+    </div>
+
+    <div class="stat-card info">
+      <div class="stat-header">
+        <span class="stat-title">Active Members</span>
+        <div class="stat-icon">👥</div>
+      </div>
+      <div class="stat-value" style="color: var(--status-info);">{{ stats.members }}</div>
+      <div class="stat-subtext">Students & faculty directory</div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-header">
+        <span class="stat-title">Pending Holds</span>
+        <div class="stat-icon">📌</div>
+      </div>
+      <div class="stat-value">{{ stats.reservations }}</div>
+      <div class="stat-subtext">Waiting queue requests</div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-header">
+        <span class="stat-title">Digital E-Books</span>
+        <div class="stat-icon">💻</div>
+      </div>
+      <div class="stat-value">{{ stats.ebooks }}</div>
+      <div class="stat-subtext">Instant PDF reader titles</div>
+    </div>
+  </section>
+
+  <!-- User Active Borrows Section (If any) -->
+  {% if user_borrows %}
+  <section class="card" style="border-left: 4px solid var(--primary-500); margin-bottom: 2.5rem;">
+    <div class="card-header">
+      <div>
+        <h2 class="card-title"><span>🔖</span> Your Current Book Loans</h2>
+        <p class="card-subtitle">Books currently issued under your account</p>
+      </div>
+      <a href="{{ url_for('profile_page') }}" class="btn btn-secondary btn-sm">View Full History</a>
+    </div>
+
+    <div class="table-responsive">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Book Title</th>
+            <th>Issue Date</th>
+            <th>Due Date</th>
+            <th>Status</th>
+            <th>Receipt</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for b in user_borrows %}
+          <tr>
+            <td>
+              <div style="font-weight: 700;">{{ b.book_title }}</div>
+              <div style="font-size: 0.8rem; color: var(--text-subtle);">Author: {{ b.book_author }}</div>
+            </td>
+            <td>{{ b.issue_date }}</td>
+            <td>
+              <span style="font-weight: 700; color: var(--status-warning);">{{ b.due_date }}</span>
+            </td>
+            <td>
+              <span class="badge badge-warning">
+                <span class="badge-dot"></span> Active Loan
+              </span>
+            </td>
+            <td>
+              <a href="{{ url_for('borrow_receipt', id=b.id) }}" class="btn btn-secondary btn-sm" target="_blank">
+                <span>📄</span> Slip
+              </a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+  {% endif %}
+
+  <!-- Categories Quick Filters -->
+  <section style="margin-bottom: 2.5rem;">
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
+      <h3 style="font-size: 1.15rem; font-weight: 700; display: flex; align-items: center; gap: 0.5rem;">
+        <span>🏷️</span> Popular Categories
+      </h3>
+      <a href="{{ url_for('books_catalog') }}" style="color: var(--primary-400); text-decoration: none; font-size: 0.88rem; font-weight: 600;">View All Books &rarr;</a>
+    </div>
+    <div style="display: flex; gap: 0.6rem; flex-wrap: wrap;">
+      <a href="{{ url_for('books_catalog') }}" class="badge badge-neutral" style="padding: 0.5rem 1rem; font-size: 0.85rem; text-decoration: none;">
+        All Genres ({{ stats.total }})
+      </a>
+      {% for cat in categories %}
+      <a href="{{ url_for('books_catalog', category=cat) }}" class="badge badge-neutral" style="padding: 0.5rem 1rem; font-size: 0.85rem; text-decoration: none; transition: all var(--transition-fast);">
+        {{ cat }}
+      </a>
+      {% endfor %}
+    </div>
+  </section>
+
+  <!-- Featured / Recent Books Section -->
+  <section style="margin-bottom: 3rem;">
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+      <div>
+        <h2 style="font-size: 1.5rem; font-weight: 800; letter-spacing: -0.02em;">
+          <span>✨</span> Recent Additions to Catalog
+        </h2>
+        <p style="color: var(--text-muted); font-size: 0.92rem;">Latest acquired titles and digital releases</p>
+      </div>
+      <a href="{{ url_for('books_catalog') }}" class="btn btn-secondary btn-sm">
+        <span>📖</span> View Complete Catalog ({{ stats.total }})
+      </a>
+    </div>
+
+    <div class="books-grid">
+      {% for book in recent_books %}
+      <div class="book-card">
+        <div class="book-cover-wrap">
+          {% if book.cover_url %}
+          <img src="{{ book.cover_url }}" alt="{{ book.title }} Cover" class="book-cover-img" loading="lazy">
+          {% else %}
+          <div class="book-cover-fallback">
+            <span class="icon">📖</span>
+            <span style="font-size: 0.72rem; font-weight: 700; line-height: 1.2;">{{ book.title[:24] }}</span>
+          </div>
+          {% endif %}
+          
+          <div class="book-cover-badge">
+            {% if book.status == 'Available' %}
+            <span class="badge badge-success"><span class="badge-dot"></span> Available</span>
+            {% else %}
+            <span class="badge badge-warning"><span class="badge-dot"></span> Borrowed</span>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="book-body">
+          <div class="book-category">{{ book.category }}</div>
+          <h3 class="book-title" title="{{ book.title }}">{{ book.title }}</h3>
+          <div class="book-author">by {{ book.author }}</div>
+
+          <div class="book-meta">
+            <span>Copies: {{ book.available_copies or 0 }} / {{ book.total_copies or 1 }}</span>
+            {% if book.isbn %}
+            <span style="font-family: var(--font-mono); font-size: 0.75rem;">ISBN: {{ book.isbn }}</span>
+            {% endif %}
+          </div>
+
+          <div class="book-actions">
+            {% if book.pdf_url %}
+            <a href="{{ url_for('e_book_reader', book_id=book.id) }}" class="btn btn-primary btn-sm" style="flex: 1;" title="Read Online PDF">
+              <span>💻</span> Read E-Book
+            </a>
+            {% else %}
+            <a href="{{ url_for('book_reviews', book_id=book.id) }}" class="btn btn-secondary btn-sm" style="flex: 1;">
+              <span>⭐</span> Reviews
+            </a>
+            {% endif %}
+
+            {% if book.status == 'Available' %}
+            <a href="{{ url_for('borrow_page') }}" class="btn btn-secondary btn-sm" title="Issue this book">
+              <span>🔄</span> Issue
+            </a>
+            {% else %}
+            <a href="{{ url_for('reservations_page') }}" class="btn btn-secondary btn-sm" title="Place hold reservation">
+              <span>📌</span> Hold
+            </a>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <!-- Community Reviews Spotlight -->
+  {% if recent_reviews %}
+  <section class="card">
+    <div class="card-header">
+      <div>
+        <h2 class="card-title"><span>💬</span> Reader Reviews & Ratings</h2>
+        <p class="card-subtitle">Recent feedback submitted by community members</p>
+      </div>
+    </div>
+    
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.25rem;">
+      {% for rev in recent_reviews %}
+      <div style="background: var(--bg-card-subtle); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1.25rem; display: flex; flex-direction: column;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+          <div style="font-weight: 700; font-size: 0.95rem;">{{ rev.reviewer_name }}</div>
+          <div style="color: #fbbf24; font-size: 0.85rem; font-weight: 700;">
+            {% for _ in range(rev.rating) %}★{% endfor %}{% for _ in range(5 - rev.rating) %}☆{% endfor %}
+          </div>
+        </div>
+        <div style="font-size: 0.82rem; color: var(--primary-400); font-weight: 600; margin-bottom: 0.5rem;">
+          on <em>{{ rev.book_title }}</em>
+        </div>
+        <p style="font-size: 0.88rem; color: var(--text-muted); font-style: italic; line-height: 1.5; flex: 1;">
+          "{{ rev.comment or 'Great book, highly recommended!' }}"
+        </p>
+        <div style="font-size: 0.75rem; color: var(--text-subtle); margin-top: 0.75rem;">
+          {{ rev.created_at[:10] if rev.created_at else 'Recent' }}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+</div>
+{% endblock %}

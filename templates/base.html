@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}LibManager{% endblock %} | Intelligent Library Management System</title>
+  <meta name="description" content="Next-Generation Enterprise Library Management System with real-time analytics, ISBN auto-fetching, circulation tracking, and digital reader.">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>">
+  {% block head_extra %}{% endblock %}
+</head>
+<body>
+  <!-- Global Navigation Bar -->
+  <nav class="navbar" id="mainNavbar">
+    <div class="container nav-container">
+      <a href="{{ url_for('home_page') if current_user else url_for('login_page') }}" class="nav-brand" id="navBrandLogo">
+        <div class="nav-brand-logo">📚</div>
+        <div class="nav-brand-text">Lib<span>Manager</span></div>
+      </a>
+
+      {% if current_user %}
+      <ul class="nav-links" id="mainNavLinks">
+        <li>
+          <a href="{{ url_for('home_page') }}" class="nav-link {% if active_page == 'home' %}active{% endif %}">
+            <span>🏠</span> Home
+          </a>
+        </li>
+        <li>
+          <a href="{{ url_for('books_catalog') }}" class="nav-link {% if active_page == 'books' %}active{% endif %}">
+            <span>📖</span> Catalog
+          </a>
+        </li>
+        <li>
+          <a href="{{ url_for('members_page') }}" class="nav-link {% if active_page == 'members' %}active{% endif %}">
+            <span>👥</span> Members
+          </a>
+        </li>
+        <li>
+          <a href="{{ url_for('borrow_page') }}" class="nav-link {% if active_page == 'borrow' %}active{% endif %}">
+            <span>🔄</span> Circulation
+          </a>
+        </li>
+        <li>
+          <a href="{{ url_for('reservations_page') }}" class="nav-link {% if active_page == 'reservations' %}active{% endif %}">
+            <span>📌</span> Holds
+          </a>
+        </li>
+        <li>
+          <a href="{{ url_for('analytics_page') }}" class="nav-link {% if active_page == 'analytics' %}active{% endif %}">
+            <span>📊</span> Analytics
+          </a>
+        </li>
+      </ul>
+      {% endif %}
+
+      <div class="nav-actions">
+        <!-- Dark/Light Theme Toggle -->
+        <button type="button" class="theme-toggle-btn" id="themeToggleBtn" title="Toggle Light/Dark Theme" aria-label="Toggle theme">
+          <span id="themeIcon">🌙</span>
+        </button>
+
+        {% if current_user %}
+        <!-- User Profile Dropdown Badge -->
+        <a href="{{ url_for('profile_page') }}" class="user-menu" id="userMenuBtn" title="View Profile">
+          <div class="user-avatar">{{ current_user.full_name[:1] | upper if current_user.full_name else 'U' }}</div>
+          <div class="user-info">
+            <span class="user-name">{{ current_user.full_name or current_user.username }}</span>
+            <span class="user-role-badge">{{ current_user.role }}</span>
+          </div>
+        </a>
+
+        <!-- Sign Out Button -->
+        <a href="{{ url_for('logout') }}" class="btn btn-secondary btn-sm" id="logoutBtn" title="Sign Out">
+          <span>🚪</span> Exit
+        </a>
+        {% else %}
+        <a href="{{ url_for('login_page') }}" class="btn btn-secondary btn-sm" id="loginNavBtn">Sign In</a>
+        <a href="{{ url_for('register_page') }}" class="btn btn-primary btn-sm" id="registerNavBtn">Create Account</a>
+        {% endif %}
+      </div>
+    </div>
+  </nav>
+
+  <!-- Flash Messages & Alerts -->
+  <div class="alerts-container">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category if category != 'error' else 'danger' }}" role="alert">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <span>
+                {% if category == 'success' %}✅
+                {% elif category == 'danger' or category == 'error' %}⚠️
+                {% elif category == 'warning' %}⏳
+                {% else %}ℹ️{% endif %}
+              </span>
+              <span>{{ message }}</span>
+            </div>
+            <button type="button" class="alert-close" onclick="this.parentElement.remove()" aria-label="Close">&times;</button>
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+  </div>
+
+  <!-- Main Content Page Body -->
+  <main id="mainContent" style="flex: 1;">
+    {% block content %}{% endblock %}
+  </main>
+
+  <!-- Global Footer -->
+  <footer class="footer">
+    <div class="container footer-content">
+      <div>
+        <strong>LibManager Enterprise OS</strong> &copy; 2026 &bull; High Performance Library Management & Total Quality Management (TQM).
+      </div>
+      <div class="footer-links">
+        <a href="{{ url_for('help_page') if current_user else '#' }}">Help & FAQ</a>
+        <a href="{{ url_for('about_page') if current_user else '#' }}">System Specs</a>
+        <span class="badge badge-success" style="font-size: 0.72rem;">
+          <span class="badge-dot"></span> System Live & Operational
+        </span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Core Theme & Client Logic -->
+  <script>
+    // Theme Switcher Logic with LocalStorage persistence
+    (function() {
+      const themeToggleBtn = document.getElementById('themeToggleBtn');
+      const themeIcon = document.getElementById('themeIcon');
+      const savedTheme = localStorage.getItem('libmanager_theme') || 'dark';
+
+      function applyTheme(theme) {
+        document.documentElement.setAttribute('data-theme', theme);
+        if (themeIcon) {
+          themeIcon.textContent = theme === 'dark' ? '🌙' : '☀️';
+        }
+        localStorage.setItem('libmanager_theme', theme);
+      }
+
+      applyTheme(savedTheme);
+
+      if (themeToggleBtn) {
+        themeToggleBtn.addEventListener('click', function() {
+          const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+          const nextTheme = currentTheme === 'dark' ? 'light' : 'dark';
+          applyTheme(nextTheme);
+        });
+      }
+
+      // Auto dismiss flash alerts after 5 seconds
+      setTimeout(() => {
+        document.querySelectorAll('.alert').forEach(al => {
+          al.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
+          al.style.opacity = '0';
+          al.style.transform = 'translateY(-10px)';
+          setTimeout(() => al.remove(), 400);
+        });
+      }, 5000);
+    })();
+  </script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block title %}Reading: {{ book.title }}{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 1400px; padding-top: 1.5rem; padding-bottom: 2rem; display: flex; flex-direction: column; height: calc(100vh - 120px);">
+  <!-- Reader Top Toolbar -->
+  <div style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 0.85rem 1.5rem; margin-bottom: 1rem; flex-wrap: wrap; gap: 1rem;">
+    <div style="display: flex; align-items: center; gap: 1rem;">
+      <a href="{{ url_for('books_catalog') }}" class="btn btn-secondary btn-sm">
+        &larr; Exit Reader
+      </a>
+      <div>
+        <h2 style="font-size: 1.15rem; font-weight: 700; margin: 0; line-height: 1.2;">{{ book.title }}</h2>
+        <span style="font-size: 0.82rem; color: var(--text-muted);">by {{ book.author }} &bull; {{ book.category }}</span>
+      </div>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 0.75rem;">
+      <a href="{{ book.pdf_url }}" download class="btn btn-secondary btn-sm" title="Download Offline Copy">
+        <span>📥</span> Download PDF
+      </a>
+      <button type="button" class="btn btn-primary btn-sm" onclick="toggleFullScreen()" id="fullscreenBtn">
+        <span>⛶</span> Full Screen
+      </button>
+    </div>
+  </div>
+
+  <!-- PDF Display Frame -->
+  <div id="readerContainer" style="flex: 1; background: #000; border-radius: var(--radius-lg); overflow: hidden; border: 1px solid var(--border-color); position: relative;">
+    <iframe src="{{ book.pdf_url }}#toolbar=1" style="width: 100%; height: 100%; border: none;" id="pdfViewerFrame">
+      <div style="padding: 2rem; text-align: center; color: #fff;">
+        <p>Your browser does not support inline PDF viewing.</p>
+        <a href="{{ book.pdf_url }}" class="btn btn-primary" target="_blank">Click here to open PDF file directly</a>
+      </div>
+    </iframe>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  function toggleFullScreen() {
+    const el = document.getElementById('readerContainer');
+    if (!document.fullscreenElement) {
+      el.requestFullscreen().catch(err => {
+        alert(`Error attempting to enable fullscreen: ${err.message}`);
+      });
+    } else {
+      document.exitFullscreen();
+    }
+  }
+</script>
+{% endblock %}

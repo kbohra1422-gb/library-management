@@ -605,9 +605,9 @@ Key Desktop Features:
         if not file_path:
             return
 
-        search_text = self.search_var.get().strip()
-        cat_filter = self.filter_cat_var.get().strip()
-        status_filter = self.filter_status_var.get().strip()
+        search_text = self.entry_search.get().strip()
+        cat_filter = self.filter_cat_option.get().strip()
+        status_filter = self.filter_status_option.get().strip()
 
         query = "SELECT id, title, author, category, status, created_at FROM books WHERE 1=1"
         params = []

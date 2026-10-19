@@ -1,114 +1,91 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Help & FAQ - Library Management System</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
-<body>
+{% extends "base.html" %}
 
-    <!-- Sticky Navigation Bar -->
-    <nav class="navbar">
-        <div class="nav-container">
-            <a href="/" class="brand">
-                <span class="brand-icon">📚</span>
-                <span>LibManager</span>
-            </a>
-            <div class="nav-links">
-                <a href="/" class="nav-item">Dashboard</a>
-                <a href="/help" class="nav-item active">Help & FAQ</a>
-                <a href="/about" class="nav-item">About Project</a>
-                <button type="button" id="theme-toggle" class="theme-btn" onclick="toggleTheme()" title="Toggle Dark / Light Theme">
-                    <span id="theme-icon">🌙</span>
-                    <span id="theme-label">Dark</span>
-                </button>
-            </div>
-        </div>
-    </nav>
+{% block title %}Help & FAQ - LibManager{% endblock %}
 
-    <div class="container" style="max-width: 850px;">
+{% block content %}
+<div class="container" style="max-width: 900px; padding-top: 2rem; padding-bottom: 3rem;">
 
-        <div class="hero-header">
-            <h1 class="hero-title">❓ Help & Frequently Asked Questions</h1>
-            <p class="hero-subtitle">Find quick answers on managing books, status tracking, search, and system features.</p>
-        </div>
+  <!-- Header -->
+  <div style="margin-bottom: 2rem;">
+    <h1 class="page-title" style="margin-bottom: 0.25rem;">
+      <span>❓</span> Help Center & User Guidance
+    </h1>
+    <p style="color: var(--text-muted); font-size: 0.95rem;">
+      Comprehensive documentation, operational guidelines, and answers to common library inquiries
+    </p>
+  </div>
 
-        <div class="card">
-            <h3 class="card-title">📖 Managing Books</h3>
-            
-            <div style="margin-bottom: 1.5rem;">
-                <h4 style="color: var(--primary); margin-bottom: 0.25rem;">1. How do I add a new book to the library?</h4>
-                <p style="color: var(--text-secondary);">
-                    Use the <b>Add New Book</b> form on the left side of the Dashboard. Fill in the Title, Author, Category, and optional initial Status, then click <b>Add Book to Library</b>.
-                </p>
-            </div>
-
-            <div style="margin-bottom: 1.5rem;">
-                <h4 style="color: var(--primary); margin-bottom: 0.25rem;">2. How do I search or filter books?</h4>
-                <p style="color: var(--text-secondary);">
-                    Use the filter bar above the Book List on the Dashboard. You can search keywords in book titles, authors, or categories, or filter specifically by Category and Status.
-                </p>
-            </div>
-
-            <div style="margin-bottom: 1.5rem;">
-                <h4 style="color: var(--primary); margin-bottom: 0.25rem;">3. How do I issue or return a book?</h4>
-                <p style="color: var(--text-secondary);">
-                    In the Book List table, click the <b>Issue</b> button to mark an available book as borrowed, or click <b>Return</b> to mark a borrowed book as available.
-                </p>
-            </div>
-
-            <div style="margin-bottom: 1.5rem;">
-                <h4 style="color: var(--primary); margin-bottom: 0.25rem;">4. How do I edit or delete a book?</h4>
-                <p style="color: var(--text-secondary);">
-                    Click the <b>Edit</b> button in the action column to update title, author, category, or status. Click <b>Delete</b> to permanently remove a book entry.
-                </p>
-            </div>
-
-            <div style="margin-bottom: 0.5rem;">
-                <h4 style="color: var(--primary); margin-bottom: 0.25rem;">5. Where is the data stored?</h4>
-                <p style="color: var(--text-secondary);">
-                    All book records are persistently saved in the local <code>library.db</code> SQLite database file.
-                </p>
-            </div>
-        </div>
-
-        <div style="text-align: center; margin-top: 2rem;">
-            <a href="/" class="btn btn-primary">⬅ Back to Dashboard</a>
-        </div>
-
+  <!-- Quick Start Cards -->
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.25rem; margin-bottom: 2rem;">
+    <div class="card" style="margin-bottom: 0;">
+      <div style="font-size: 2rem; margin-bottom: 0.5rem;">📖</div>
+      <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 0.35rem;">How to Borrow Books</h3>
+      <p style="font-size: 0.88rem; color: var(--text-muted); line-height: 1.5;">
+        Browse the Catalog, ensure the title is "Available", then open the Circulation desk to issue the book. The system automatically calculates your 14-day due date.
+      </p>
     </div>
 
-    <!-- Footer -->
-    <footer class="footer">
-        <p>&copy; 2026 Library Management System &bull; Built with Flask & SQLite</p>
-    </footer>
+    <div class="card" style="margin-bottom: 0;">
+      <div style="font-size: 2rem; margin-bottom: 0.5rem;">⚡</div>
+      <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 0.35rem;">ISBN Auto-Lookup</h3>
+      <p style="font-size: 0.88rem; color: var(--text-muted); line-height: 1.5;">
+        When adding books, enter an ISBN-10 or ISBN-13 code and click "Lookup". The Open Library API will automatically retrieve title, author, category, and cover image.
+      </p>
+    </div>
 
-    <script>
-        (function() {
-            const savedTheme = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-            document.documentElement.setAttribute('data-theme', savedTheme);
-        })();
+    <div class="card" style="margin-bottom: 0;">
+      <div style="font-size: 2rem; margin-bottom: 0.5rem;">💻</div>
+      <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 0.35rem;">In-Browser E-Reader</h3>
+      <p style="font-size: 0.88rem; color: var(--text-muted); line-height: 1.5;">
+        Books with attached PDF copies can be read directly in your browser with full-screen distraction-free mode.
+      </p>
+    </div>
+  </div>
 
-        function updateThemeUI() {
-            const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
-            const icon = document.getElementById('theme-icon');
-            const label = document.getElementById('theme-label');
-            if (icon && label) {
-                icon.textContent = currentTheme === 'dark' ? '☀️' : '🌙';
-                label.textContent = currentTheme === 'dark' ? 'Light' : 'Dark';
-            }
-        }
+  <!-- Frequently Asked Questions -->
+  <div class="card">
+    <div class="card-header">
+      <h2 class="card-title" style="font-size: 1.25rem;"><span>💬</span> Frequently Asked Questions</h2>
+    </div>
 
-        function toggleTheme() {
-            const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
-            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-            document.documentElement.setAttribute('data-theme', newTheme);
-            localStorage.setItem('theme', newTheme);
-            updateThemeUI();
-        }
+    <div style="display: flex; flex-direction: column; gap: 1rem;">
+      <details style="background: var(--bg-card-subtle); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1.1rem 1.25rem;" open>
+        <summary style="font-weight: 700; cursor: pointer; color: var(--text-main); font-size: 0.98rem;">
+          What is the standard circulation loan period and overdue fine?
+        </summary>
+        <p style="margin-top: 0.75rem; font-size: 0.9rem; color: var(--text-muted); line-height: 1.6;">
+          Books are issued for an automated standard period of <strong>14 calendar days</strong>. If an item is returned after the due date, an overdue fine of <strong>₹5.00 per day</strong> is dynamically calculated and billed upon book check-in.
+        </p>
+      </details>
 
-        document.addEventListener('DOMContentLoaded', updateThemeUI);
-    </script>
-</body>
-</html>
+      <details style="background: var(--bg-card-subtle); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1.1rem 1.25rem;">
+        <summary style="font-weight: 700; cursor: pointer; color: var(--text-main); font-size: 0.98rem;">
+          How does the hold reservation queue work?
+        </summary>
+        <p style="margin-top: 0.75rem; font-size: 0.9rem; color: var(--text-muted); line-height: 1.6;">
+          If a title you want is currently borrowed by another patron, you can place a hold via the <strong>Holds</strong> menu. Once returned, the status updates to "Book Returned (Ready!)", giving you reservation priority.
+        </p>
+      </details>
+
+      <details style="background: var(--bg-card-subtle); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1.1rem 1.25rem;">
+        <summary style="font-weight: 700; cursor: pointer; color: var(--text-main); font-size: 0.98rem;">
+          Can I run this application in desktop window mode without a browser?
+        </summary>
+        <p style="margin-top: 0.75rem; font-size: 0.9rem; color: var(--text-muted); line-height: 1.6;">
+          Yes! Run <code>python main.py</code> or double-click <code>run_desktop_app.bat</code>. It opens a dedicated native desktop application window powered by Edge WebView2. You can also run the legacy CustomTkinter GUI via <code>python main.py --tkinter</code>.
+        </p>
+      </details>
+
+      <details style="background: var(--bg-card-subtle); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1.1rem 1.25rem;">
+        <summary style="font-weight: 700; cursor: pointer; color: var(--text-main); font-size: 0.98rem;">
+          How do I export collection inventory to Excel or CSV?
+        </summary>
+        <p style="margin-top: 0.75rem; font-size: 0.9rem; color: var(--text-muted); line-height: 1.6;">
+          Navigate to the <strong>Catalog</strong> tab and click the <strong>Export CSV</strong> button in the top right. Any active search terms or category filters will be reflected in the exported CSV.
+        </p>
+      </details>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

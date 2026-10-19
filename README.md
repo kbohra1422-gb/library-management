@@ -20,17 +20,23 @@
 
 ## 🚀 Quick Start Guide
 
-### Option A: Web Application (Flask)
+### Option A: Standalone Desktop Application (Recommended)
+```bash
+python main.py
+```
+*(or simply double-click [`run_desktop_app.bat`](file:///c:/Users/ADMIN/library_management/run_desktop_app.bat))*  
+Opens LibManager as a standalone, native desktop application window with Edge WebView2 runtime and the full web experience.
+
+### Option B: Web Application (Browser Mode)
 ```bash
 python app.py
 ```
 Open your browser at `http://127.0.0.1:5000`
 
-### Option B: Desktop GUI Application (CustomTkinter)
+### Option C: Legacy CustomTkinter GUI
 ```bash
-python main.py
+python main.py --tkinter
 ```
-*(or double-click [`run_desktop_app.bat`](file:///c:/Users/ADMIN/library_management/run_desktop_app.bat))*
 
 ---
 
@@ -70,6 +76,29 @@ python main.py
 | `fine_amount` | `REAL` | `DEFAULT 0.0` | Overdue Fine Calculated |
 | `status` | `TEXT` | `DEFAULT 'Issued'` | Record Status (`Issued` / `Returned`) |
 
+### `users` Table
+| Column Name | Data Type | Constraint | Description |
+| :--- | :--- | :--- | :--- |
+| `id` | `INTEGER` | `PRIMARY KEY AUTOINCREMENT` | User ID |
+| `username` | `TEXT` | `UNIQUE NOT NULL` | Login Username |
+| `email` | `TEXT` | `UNIQUE NOT NULL` | User Email |
+| `password_hash` | `TEXT` | `NOT NULL` | Werkzeug SHA-256 Hashed Password |
+| `full_name` | `TEXT` | `OPTIONAL` | Display Name |
+| `role` | `TEXT` | `DEFAULT 'Student'` | Role (`Admin`, `Librarian`, `Faculty`, `Student`) |
+| `created_at` | `TIMESTAMP` | `DEFAULT CURRENT_TIMESTAMP` | Account Registration Date |
+
+---
+
+## 🔑 Default Demo Accounts
+
+For immediate testing, default accounts are seeded automatically on first run:
+- **👑 Administrator Account**:
+  - Username: `admin`
+  - Password: `admin123`
+- **🎓 Student Account**:
+  - Username: `student`
+  - Password: `student123`
+
 ---
 
 ## 📁 Project Structure
@@ -77,7 +106,7 @@ python main.py
 ```text
 library_management/
 │
-├── app.py                   # Flask Web Application routes & database models
+├── app.py                   # Flask Web Application routes, auth & database models
 ├── main.py                  # Entry point to launch Desktop GUI app
 ├── desktop_app.py           # CustomTkinter Desktop GUI application logic
 ├── library.db               # Local SQLite database file
@@ -85,6 +114,24 @@ library_management/
 ├── requirements.txt         # Project Dependencies
 ├── README.md                # Project Architecture & Features Guide
 ├── USER_MANUAL.md           # Desktop & Web Application User Manual
-├── static/                  # CSS stylesheets & assets
-└── templates/               # HTML5 templates (index, members, borrow, analytics, receipt, help, about)
+├── static/
+│   ├── style.css            # Modern Glassmorphic CSS Design System
+│   └── uploads/pdfs/        # E-Book PDF repository
+└── templates/
+    ├── navbar.html          # Global reusable navigation bar with auth pill
+    ├── home.html            # Main Library Landing & Dashboard Portal
+    ├── login.html           # Glassmorphic user login with 1-click demo fill
+    ├── register.html        # Account creation & role registration
+    ├── profile.html         # User settings, password management & borrow logs
+    ├── index.html           # Full Books Catalog management & filtering
+    ├── members.html         # Member directory
+    ├── borrow.html          # Circulation issue/return desk
+    ├── reservations.html    # Book hold requests
+    ├── analytics.html       # Chart.js visual statistics
+    ├── reader.html          # In-browser E-Book PDF reader
+    ├── receipt.html         # Printable QR-code loan receipt
+    ├── reviews.html         # Star ratings & book feedback
+    ├── edit.html            # Book editor
+    ├── help.html            # FAQ & User assistance
+    └── about.html           # Project background & TQM compliance
 ```

@@ -1,154 +1,138 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reviews for {{ book.title }} - Library System</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
-<body>
+{% extends "base.html" %}
 
-    <!-- Sticky Navigation Bar -->
-    <nav class="navbar">
-        <div class="nav-container">
-            <a href="/" class="brand">
-                <span class="brand-icon">📚</span>
-                <span>LibManager</span>
-            </a>
-            <div class="nav-links">
-                <a href="/" class="nav-item">Books Catalog</a>
-                <a href="/members" class="nav-item">Members</a>
-                <a href="/borrow" class="nav-item">Issue / Return</a>
-                <a href="/reservations" class="nav-item">Reservations</a>
-                <a href="/analytics" class="nav-item">Analytics</a>
-                <a href="/help" class="nav-item">Help & FAQ</a>
-                <a href="/about" class="nav-item">About</a>
-                <button type="button" id="theme-toggle" class="theme-btn" onclick="toggleTheme()" title="Toggle Dark / Light Theme">
-                    <span id="theme-icon">🌙</span>
-                    <span id="theme-label">Dark</span>
-                </button>
-            </div>
+{% block title %}Reviews for {{ book.title }}{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 900px; padding-top: 2rem; padding-bottom: 3rem;">
+
+  <!-- Back Link -->
+  <div style="margin-bottom: 1.5rem;">
+    <a href="{{ url_for('books_catalog') }}" style="color: var(--text-muted); text-decoration: none; font-size: 0.9rem; display: inline-flex; align-items: center; gap: 0.35rem;">
+      &larr; Back to Catalog
+    </a>
+  </div>
+
+  <!-- Book Overview & Score Card -->
+  <div class="card" style="margin-bottom: 2rem;">
+    <div style="display: flex; gap: 2rem; align-items: center; flex-wrap: wrap;">
+      <div style="width: 110px; height: 155px; border-radius: var(--radius-md); overflow: hidden; background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%); flex-shrink: 0; box-shadow: var(--shadow-md);">
+        {% if book.cover_url %}
+        <img src="{{ book.cover_url }}" alt="{{ book.title }}" style="width: 100%; height: 100%; object-fit: cover;">
+        {% else %}
+        <div style="width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #fff; text-align: center; padding: 0.5rem;">
+          <span style="font-size: 2rem;">📖</span>
+          <span style="font-size: 0.7rem; font-weight: 700; margin-top: 0.25rem;">{{ book.title[:18] }}</span>
         </div>
-    </nav>
+        {% endif %}
+      </div>
 
-    <div class="container">
+      <div style="flex: 1; min-width: 250px;">
+        <span class="badge badge-neutral" style="margin-bottom: 0.5rem;">{{ book.category }}</span>
+        <h1 style="font-size: 1.8rem; font-weight: 800; line-height: 1.25; margin-bottom: 0.35rem;">{{ book.title }}</h1>
+        <p style="color: var(--text-muted); font-size: 1rem; margin-bottom: 1rem;">by <strong>{{ book.author }}</strong></p>
 
-        <!-- Flash Messages -->
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                <div class="flash-messages">
-                    {% for category, message in messages %}
-                        <div class="alert alert-{{ category }}">
-                            <span>{{ message }}</span>
-                        </div>
-                    {% endfor %}
-                </div>
-            {% endif %}
-        {% endwith %}
+        <!-- Average Rating Spotlight -->
+        <div style="display: flex; align-items: center; gap: 1rem;">
+          {% if avg_rating %}
+          <div style="display: flex; align-items: center; gap: 0.5rem; background: var(--bg-card-subtle); border: 1px solid var(--border-color); padding: 0.4rem 0.85rem; border-radius: var(--radius-full);">
+            <span style="color: #fbbf24; font-size: 1.25rem;">★</span>
+            <span style="font-size: 1.2rem; font-weight: 800;">{{ avg_rating }}</span>
+            <span style="color: var(--text-subtle); font-size: 0.85rem;">/ 5.0 ({{ review_count }} {{ 'review' if review_count == 1 else 'reviews' }})</span>
+          </div>
+          {% else %}
+          <span style="color: var(--text-subtle); font-size: 0.9rem;">No reviews yet &bull; Be the first to rate!</span>
+          {% endif %}
 
-        <!-- Book Header Banner -->
-        <div class="hero-header" style="display: flex; gap: 20px; align-items: center;">
-            {% if book.cover_url %}
-                <img src="{{ book.cover_url }}" alt="{{ book.title }}" style="width: 80px; height: 110px; border-radius: 8px; object-fit: cover; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
-            {% else %}
-                <div style="width: 80px; height: 110px; border-radius: 8px; background: var(--primary-light); color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 2.2rem;">📖</div>
-            {% endif %}
-            <div>
-                <h1 class="hero-title" style="margin-bottom: 4px;">{{ book.title }}</h1>
-                <p class="hero-subtitle">by <strong>{{ book.author }}</strong> &bull; Category: <span class="badge badge-category">{{ book.category }}</span></p>
-                <div style="margin-top: 8px; font-size: 1.1rem; font-weight: bold; color: var(--warning);">
-                    {% if avg_rating %}
-                        ⭐ {{ avg_rating }} / 5.0 <span style="font-size: 0.85em; opacity: 0.8; font-weight: normal; color: var(--text-secondary);">({{ review_count }} community review{{ 's' if review_count > 1 else '' }})</span>
-                    {% else %}
-                        ⭐ No ratings yet — be the first to review!
-                    {% endif %}
-                </div>
-            </div>
+          {% if book.pdf_url %}
+          <a href="{{ url_for('e_book_reader', book_id=book.id) }}" class="btn btn-secondary btn-sm">
+            <span>💻</span> Read Online
+          </a>
+          {% endif %}
         </div>
+      </div>
+    </div>
+  </div>
 
-        <div style="display: grid; grid-template-columns: 360px 1fr; gap: 20px; align-items: start;">
-            
-            <!-- Submit Review Form Card -->
-            <div class="card">
-                <h3 class="card-title">⭐ Leave a Review</h3>
-                <form action="/reviews/{{ book.id }}" method="POST">
-                    <div class="form-group">
-                        <label for="reviewer_name">Your Name *</label>
-                        <input type="text" id="reviewer_name" name="reviewer_name" class="form-control" required placeholder="e.g. Ananya Roy">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="rating">Rating Score *</label>
-                        <select id="rating" name="rating" class="form-control" required>
-                            <option value="5">⭐⭐⭐⭐⭐ 5 Stars (Excellent)</option>
-                            <option value="4">⭐⭐⭐⭐ 4 Stars (Very Good)</option>
-                            <option value="3">⭐⭐⭐ 3 Stars (Good)</option>
-                            <option value="2">⭐⭐ 2 Stars (Fair)</option>
-                            <option value="1">⭐ 1 Star (Poor)</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="comment">Review Comment</label>
-                        <textarea id="comment" name="comment" class="form-control" rows="4" placeholder="Share your thoughts about this book..."></textarea>
-                    </div>
-
-                    <button type="submit" class="btn btn-primary btn-block">Submit Review</button>
-                    <a href="/" class="btn btn-secondary btn-block" style="margin-top: 8px;">⬅️ Back to Catalog</a>
-                </form>
-            </div>
-
-            <!-- Reviews List Card -->
-            <div class="card">
-                <h3 class="card-title">💬 Reader Feedback & Comments ({{ reviews|length }})</h3>
-                {% if reviews %}
-                    <div style="display: flex; flex-direction: column; gap: 15px;">
-                        {% for r in reviews %}
-                            <div style="padding: 15px; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--bg-main);">
-                                <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
-                                    <strong>👤 {{ r.reviewer_name }}</strong>
-                                    <span style="color: var(--warning); font-weight: bold;">
-                                        {% for i in range(r.rating) %}⭐{% endfor %}
-                                    </span>
-                                </div>
-                                <p style="margin: 0; font-size: 0.95em; opacity: 0.9;">{{ r.comment or 'No written feedback provided.' }}</p>
-                                <small style="display: block; margin-top: 8px; font-size: 0.78em; color: var(--text-muted);">Posted on {{ r.created_at[:10] if r.created_at else 'N/A' }}</small>
-                            </div>
-                        {% endfor %}
-                    </div>
-                {% else %}
-                    <div style="padding: 30px; text-align: center; color: var(--text-muted);">
-                        <div style="font-size: 2.5rem; margin-bottom: 8px;">💬</div>
-                        <p>No reviews posted yet for this title.</p>
-                    </div>
-                {% endif %}
-            </div>
-
-        </div>
-
+  <!-- Add Review Form -->
+  <div class="card" style="margin-bottom: 2rem;">
+    <div class="card-header">
+      <h2 class="card-title" style="font-size: 1.25rem;"><span>⭐</span> Write a Review & Rating</h2>
     </div>
 
-    <script>
-        function toggleTheme() {
-            const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
-            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-            document.documentElement.setAttribute('data-theme', newTheme);
-            localStorage.setItem('theme', newTheme);
-            updateThemeButton(newTheme);
-        }
-        function updateThemeButton(theme) {
-            const icon = document.getElementById('theme-icon');
-            const label = document.getElementById('theme-label');
-            if (icon && label) {
-                icon.textContent = theme === 'dark' ? '☀️' : '🌙';
-                label.textContent = theme === 'dark' ? 'Light' : 'Dark';
-            }
-        }
-        (function() {
-            const savedTheme = localStorage.getItem('theme') || 'light';
-            document.documentElement.setAttribute('data-theme', savedTheme);
-            updateThemeButton(savedTheme);
-        })();
-    </script>
-</body>
-</html>
+    <form action="{{ url_for('book_reviews', book_id=book.id) }}" method="POST">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label" for="reviewerName">Your Name *</label>
+          <input type="text" name="reviewer_name" id="reviewerName" class="form-control" value="{{ current_user.full_name or current_user.username if current_user else '' }}" placeholder="e.g. Ananya Roy" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="ratingSelect">Star Rating *</label>
+          <select name="rating" id="ratingSelect" class="form-select">
+            <option value="5">★★★★★ (5/5) Exceptional</option>
+            <option value="4">★★★★☆ (4/5) Very Good</option>
+            <option value="3">★★★☆☆ (3/5) Average / Good</option>
+            <option value="2">★★☆☆☆ (2/5) Below Expectations</option>
+            <option value="1">★☆☆☆☆ (1/5) Poor</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="reviewComment">Review Comments / Insights</label>
+        <textarea name="comment" id="reviewComment" rows="3" class="form-control" placeholder="Share what you liked, key takeaways, or who this book is best suited for..."></textarea>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end;">
+        <button type="submit" class="btn btn-primary">
+          <span>🚀</span> Submit Review
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Reviews List -->
+  <div class="card">
+    <div class="card-header">
+      <h2 class="card-title" style="font-size: 1.25rem;">
+        <span>💬</span> Community Reviews ({{ reviews|length }})
+      </h2>
+    </div>
+
+    {% if reviews|length == 0 %}
+    <div style="text-align: center; padding: 2.5rem; color: var(--text-muted);">
+      No written reviews available yet for this title. Submit your rating using the form above!
+    </div>
+    {% else %}
+    <div style="display: flex; flex-direction: column; gap: 1.25rem;">
+      {% for rev in reviews %}
+      <div style="padding: 1.25rem; background: var(--bg-card-subtle); border: 1px solid var(--border-color); border-radius: var(--radius-md);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+          <div style="display: flex; align-items: center; gap: 0.65rem;">
+            <div class="user-avatar" style="width: 32px; height: 32px; font-size: 0.8rem;">
+              {{ rev.reviewer_name[:1] | upper }}
+            </div>
+            <div>
+              <div style="font-weight: 700; font-size: 0.95rem;">{{ rev.reviewer_name }}</div>
+              <div style="font-size: 0.75rem; color: var(--text-subtle);">{{ rev.created_at[:10] if rev.created_at else 'Verified Patron' }}</div>
+            </div>
+          </div>
+
+          <div style="color: #fbbf24; font-size: 1rem; letter-spacing: 0.1em;">
+            {% for _ in range(rev.rating) %}★{% endfor %}{% for _ in range(5 - rev.rating) %}☆{% endfor %}
+          </div>
+        </div>
+
+        {% if rev.comment %}
+        <p style="color: var(--text-main); font-size: 0.92rem; line-height: 1.6; margin-top: 0.5rem;">
+          {{ rev.comment }}
+        </p>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}

@@ -12,26 +12,43 @@ Welcome to the **Library Management System**. This user manual guides you throug
 
 ## 2. Getting Started
 
-### Launching the Web Application (Flask)
+### Launching the Native Desktop Application (Recommended)
+```bash
+python main.py
+```
+Or double-click `run_desktop_app.bat` on Windows.
+*Opens LibManager in an independent native desktop window with the full web experience, login authentication, and offline capability.*
+
+### Launching in Web Browser Mode
 ```bash
 python app.py
 ```
 Open your web browser and navigate to: `http://127.0.0.1:5000`
 
-### Launching the Desktop Application (CustomTkinter)
+### Launching Legacy CustomTkinter GUI
 ```bash
-python main.py
+python main.py --tkinter
 ```
-Or double-click `run_desktop_app.bat` on Windows.
 
 ---
 
 ## 3. Core Modules & Step-by-Step Usage
 
-### 📖 1. Books Catalog & ISBN Auto-Fetch
-- **Auto-Fetch by ISBN**: Enter an ISBN (e.g. `9780132350884`) and click **Fetch** to automatically auto-fill Title, Author, Category, and Cover Image URL from Open Library API.
-- **Multi-Copy Quantity**: Set `total_copies` when adding books. `available_copies` updates dynamically.
-- **Multi-Criteria Sorting**: Sort catalog by Newest, Title (A-Z / Z-A), Author (A-Z), or Category.
+### 🏠 0. Home Page & Instant Search
+- **Central Portal (`/`)**: Overview with live counters for total books, available copies, borrowed books, members, digital e-books, and reservations.
+- **Global Search**: Type book title, author, category, or ISBN to search the entire library collection.
+- **Featured Books & Quick Actions**: Fast shortcuts to digital reading, reservation desk, and account login.
+
+### 🔐 1. User Authentication & Role Management
+- **Login (`/login`)**: Secure sign-in using username or email with SHA-256 hashed password verification.
+- **Demo Accounts**: Instant 1-click test buttons for:
+  - 👑 **Admin**: `admin` / `admin123` (Full catalog editing, member management, issuing, analytics)
+  - 🎓 **Student**: `student` / `student123` (Browsing, personal borrowing history, reservations)
+- **Sign Up (`/register`)**: Create new accounts as Student, Faculty, Librarian, or Administrator.
+- **User Profile (`/profile`)**: Update profile details, change passwords, and track personal borrowed books.
+- **Logout (`/logout`)**: Securely terminate session and return to home.
+
+### 📖 2. Books Catalog & ISBN Auto-Fetch (`/books`)
 
 ### 👤 2. Member & Profile Management
 - Navigate to the **Members** tab to register Students, Faculty, and Staff.
