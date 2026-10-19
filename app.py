@@ -114,6 +114,15 @@ def init_db():
         cursor.execute("ALTER TABLE books ADD COLUMN available_copies INTEGER DEFAULT 1")
     if "pdf_url" not in existing_cols:
         cursor.execute("ALTER TABLE books ADD COLUMN pdf_url TEXT")
+    if "icon" not in existing_cols:
+        cursor.execute("ALTER TABLE books ADD COLUMN icon TEXT")
+
+    # Ensure all books in the catalog have tailored icons assigned
+    cursor.execute("SELECT id, title, category, icon FROM books")
+    for b_row in cursor.fetchall():
+        if not b_row["icon"]:
+            matched = get_book_icon(b_row["title"], b_row["category"])
+            cursor.execute("UPDATE books SET icon = ? WHERE id = ?", (matched, b_row["id"]))
 
     # Seed Default Demo Accounts if users table is empty
     cursor.execute("SELECT COUNT(*) FROM users")
@@ -134,20 +143,64 @@ def init_db():
     conn.close()
 
 
+def get_book_icon(title="", category="", custom_icon=None):
+    """Returns a tailored, expressive emoji icon according to the book title and genre."""
+    if custom_icon and str(custom_icon).strip():
+        return str(custom_icon).strip()
+    text = f"{title or ''} {category or ''}".lower()
+    if any(k in text for k in ["clean code", "code", "software", "program", "python", "java", "developer", "tech", "computer", "web", "html", "css", "c++", "linux"]):
+        return "💻"
+    if any(k in text for k in ["atomic", "habit", "routine", "discipline", "productivity", "focus", "power"]):
+        return "🎯"
+    if any(k in text for k in ["alchemist", "coelho", "magic", "spirit", "alchemy", "soul", "destiny"]):
+        return "✨"
+    if any(k in text for k in ["wings of fire", "fire", "kalam", "rocket", "space", "biography", "autobiography", "leader", "apj"]):
+        return "🚀"
+    if any(k in text for k in ["hobbit", "lord of the rings", "ring", "fantasy", "dragon", "tolkien", "wizard", "sorcery", "quest"]):
+        return "🧙"
+    if any(k in text for k in ["think and grow", "rich", "wealth", "money", "invest", "finance", "business", "dollar", "stock", "startup"]):
+        return "💡"
+    if any(k in text for k in ["science", "physics", "chemistry", "biology", "astronomy", "cosmos", "quantum"]):
+        return "🔬"
+    if any(k in text for k in ["history", "war", "ancient", "civilization", "empire", "revolution", "historical"]):
+        return "📜"
+    if any(k in text for k in ["psychology", "mind", "mental", "brain", "behavior", "cognitive", "personal development"]):
+        return "🧠"
+    if any(k in text for k in ["novel", "story", "fiction", "literature", "classic"]):
+        return "📚"
+    if any(k in text for k in ["art", "design", "paint", "draw", "photo", "music", "cinema"]):
+        return "🎨"
+    if any(k in text for k in ["math", "data", "algorithm", "statistic", "calculus", "geometry"]):
+        return "🔢"
+    if any(k in text for k in ["mystery", "thriller", "crime", "detective", "sherlock", "secret"]):
+        return "🕵️"
+    if any(k in text for k in ["philosophy", "meditation", "zen", "stoic", "peace", "wisdom"]):
+        return "🧭"
+    if any(k in text for k in ["health", "fitness", "yoga", "nutrition", "medicine", "doctor"]):
+        return "🌿"
+    if any(k in text for k in ["love", "romance", "heart", "poem", "poetry"]):
+        return "💖"
+    if any(k in text for k in ["travel", "geography", "world", "journey", "adventure", "explore"]):
+        return "🗺️"
+    return "📖"
+
+
 @app.context_processor
 def inject_user():
-    """Injects current_user dictionary into all Jinja2 templates automatically."""
+    """Injects current_user dictionary and get_book_icon into all Jinja2 templates automatically."""
+    user_data = None
     if "user_id" in session:
-        return {
-            "current_user": {
-                "id": session.get("user_id"),
-                "username": session.get("username"),
-                "email": session.get("email"),
-                "full_name": session.get("full_name"),
-                "role": session.get("role", "Member")
-            }
+        user_data = {
+            "id": session.get("user_id"),
+            "username": session.get("username"),
+            "email": session.get("email"),
+            "full_name": session.get("full_name"),
+            "role": session.get("role", "Member")
         }
-    return {"current_user": None}
+    return {
+        "current_user": user_data,
+        "get_book_icon": get_book_icon
+    }
 
 
 def login_required(f):
@@ -375,6 +428,9 @@ def add_book():
     isbn = request.form.get("isbn", "").strip()
     cover_url = request.form.get("cover_url", "").strip()
     pdf_url = handle_pdf_upload(request)
+    icon = request.form.get("icon", "").strip()
+    if not icon:
+        icon = get_book_icon(title, category)
 
     try:
         total_copies = max(1, int(request.form.get("total_copies", 1)))
@@ -387,10 +443,10 @@ def add_book():
         conn = get_db_connection()
         conn.execute(
             """
-            INSERT INTO books (title, author, category, status, isbn, cover_url, total_copies, available_copies, pdf_url)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO books (title, author, category, status, isbn, cover_url, total_copies, available_copies, pdf_url, icon)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
-            (title, author, category, status, isbn if isbn else None, cover_url if cover_url else None, total_copies, available_copies, pdf_url)
+            (title, author, category, status, isbn if isbn else None, cover_url if cover_url else None, total_copies, available_copies, pdf_url, icon)
         )
         conn.commit()
         conn.close()
@@ -420,6 +476,9 @@ def edit_book(id):
         isbn = request.form.get("isbn", "").strip()
         cover_url = request.form.get("cover_url", "").strip()
         pdf_url = handle_pdf_upload(request, book["pdf_url"])
+        icon = request.form.get("icon", "").strip()
+        if not icon:
+            icon = get_book_icon(title, category)
 
         try:
             total_copies = max(1, int(request.form.get("total_copies", book["total_copies"] or 1)))
@@ -434,10 +493,10 @@ def edit_book(id):
             conn.execute(
                 """
                 UPDATE books
-                SET title = ?, author = ?, category = ?, status = ?, isbn = ?, cover_url = ?, total_copies = ?, available_copies = ?, pdf_url = ?
+                SET title = ?, author = ?, category = ?, status = ?, isbn = ?, cover_url = ?, total_copies = ?, available_copies = ?, pdf_url = ?, icon = ?
                 WHERE id = ?
                 """,
-                (title, author, category, status, isbn if isbn else None, cover_url if cover_url else None, total_copies, new_avail, pdf_url, id)
+                (title, author, category, status, isbn if isbn else None, cover_url if cover_url else None, total_copies, new_avail, pdf_url, icon, id)
             )
             conn.commit()
             conn.close()

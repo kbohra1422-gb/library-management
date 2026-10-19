@@ -127,13 +127,14 @@
   <!-- 1. Grid View (Cards) -->
   <div class="books-grid" id="catalogGridView">
     {% for book in books %}
+    {% set book_icon = book.icon if book.icon else get_book_icon(book.title, book.category) %}
     <div class="book-card">
       <div class="book-cover-wrap">
         {% if book.cover_url %}
         <img src="{{ book.cover_url }}" alt="{{ book.title }} Cover" class="book-cover-img" loading="lazy">
         {% else %}
         <div class="book-cover-fallback">
-          <span class="icon">📖</span>
+          <span class="icon">{{ book_icon }}</span>
           <span style="font-size: 0.72rem; font-weight: 700; line-height: 1.2;">{{ book.title[:24] }}</span>
         </div>
         {% endif %}
@@ -149,7 +150,10 @@
 
       <div class="book-body">
         <div class="book-category">{{ book.category }}</div>
-        <h3 class="book-title" title="{{ book.title }}">{{ book.title }}</h3>
+        <h3 class="book-title" title="{{ book.title }}">
+          <span class="book-icon-badge">{{ book_icon }}</span>
+          {{ book.title }}
+        </h3>
         <div class="book-author">by {{ book.author }}</div>
 
         <div class="book-meta">
@@ -204,11 +208,17 @@
         </thead>
         <tbody>
           {% for book in books %}
+          {% set book_icon = book.icon if book.icon else get_book_icon(book.title, book.category) %}
           <tr>
             <td style="font-family: var(--font-mono); color: var(--text-subtle);">#{{ book.id }}</td>
             <td>
-              <div style="font-weight: 700; color: var(--text-main);">{{ book.title }}</div>
-              <div style="font-size: 0.82rem; color: var(--text-muted);">by {{ book.author }}</div>
+              <div style="display: flex; align-items: center; gap: 0.75rem;">
+                <div class="book-table-avatar">{{ book_icon }}</div>
+                <div>
+                  <div style="font-weight: 700; color: var(--text-main);">{{ book.title }}</div>
+                  <div style="font-size: 0.82rem; color: var(--text-muted);">by {{ book.author }}</div>
+                </div>
+              </div>
             </td>
             <td><span class="badge badge-neutral">{{ book.category }}</span></td>
             <td style="font-family: var(--font-mono); font-size: 0.82rem;">{{ book.isbn or '—' }}</td>
@@ -307,6 +317,27 @@
           <label class="form-label" for="addCover">Cover Image URL</label>
           <input type="url" name="cover_url" id="addCover" class="form-control" placeholder="https://example.com/cover.jpg">
         </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="addIcon">Book Icon / Emoji</label>
+        <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+          <input type="text" name="icon" id="addIcon" class="form-control" placeholder="Auto" style="width: 90px; text-align: center; font-size: 1.35rem;">
+          <div style="display: flex; gap: 0.3rem; flex-wrap: wrap;">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('addIcon').value='💻'">💻</button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('addIcon').value='🎯'">🎯</button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('addIcon').value='✨'">✨</button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('addIcon').value='🚀'">🚀</button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('addIcon').value='🧙'">🧙</button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('addIcon').value='💡'">💡</button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('addIcon').value='🔬'">🔬</button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('addIcon').value='📚'">📚</button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('addIcon').value='🧠'">🧠</button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('addIcon').value='🎨'">🎨</button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('addIcon').value='🕵️'">🕵️</button>
+          </div>
+        </div>
+        <div class="form-hint">Select an icon or leave empty to automatically match title & genre.</div>
       </div>
 
       <div class="form-group">

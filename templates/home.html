@@ -174,13 +174,14 @@
 
     <div class="books-grid">
       {% for book in recent_books %}
+      {% set book_icon = book.icon if book.icon else get_book_icon(book.title, book.category) %}
       <div class="book-card">
         <div class="book-cover-wrap">
           {% if book.cover_url %}
           <img src="{{ book.cover_url }}" alt="{{ book.title }} Cover" class="book-cover-img" loading="lazy">
           {% else %}
           <div class="book-cover-fallback">
-            <span class="icon">📖</span>
+            <span class="icon">{{ book_icon }}</span>
             <span style="font-size: 0.72rem; font-weight: 700; line-height: 1.2;">{{ book.title[:24] }}</span>
           </div>
           {% endif %}
@@ -196,7 +197,10 @@
 
         <div class="book-body">
           <div class="book-category">{{ book.category }}</div>
-          <h3 class="book-title" title="{{ book.title }}">{{ book.title }}</h3>
+          <h3 class="book-title" title="{{ book.title }}">
+            <span class="book-icon-badge">{{ book_icon }}</span>
+            {{ book.title }}
+          </h3>
           <div class="book-author">by {{ book.author }}</div>
 
           <div class="book-meta">

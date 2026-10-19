@@ -92,8 +92,13 @@
           <tr>
             <td style="font-family: var(--font-mono); color: var(--text-subtle);">#{{ r.id }}</td>
             <td>
-              <div style="font-weight: 700;">{{ r.book_title }}</div>
-              <div style="font-size: 0.8rem; color: var(--text-muted);">by {{ r.book_author }}</div>
+              <div style="display: flex; align-items: center; gap: 0.65rem;">
+                <span style="font-size: 1.35rem;">{{ get_book_icon(r.book_title, r.book_author) }}</span>
+                <div>
+                  <div style="font-weight: 700;">{{ r.book_title }}</div>
+                  <div style="font-size: 0.8rem; color: var(--text-muted);">by {{ r.book_author }}</div>
+                </div>
+              </div>
             </td>
             <td>
               <div style="font-weight: 600;">{{ r.member_name }}</div>
@@ -163,7 +168,7 @@
         <select name="book_id" id="issueBookSelect" class="form-select" required>
           <option value="">-- Choose a title from available stock --</option>
           {% for b in available_books %}
-          <option value="{{ b.id }}">{{ b.title }} (by {{ b.author }})</option>
+          <option value="{{ b.id }}">{{ get_book_icon(b.title, b.author) }} {{ b.title }} (by {{ b.author }})</option>
           {% endfor %}
         </select>
       </div>

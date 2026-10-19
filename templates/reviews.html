@@ -19,8 +19,8 @@
         {% if book.cover_url %}
         <img src="{{ book.cover_url }}" alt="{{ book.title }}" style="width: 100%; height: 100%; object-fit: cover;">
         {% else %}
-        <div style="width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #fff; text-align: center; padding: 0.5rem;">
-          <span style="font-size: 2rem;">📖</span>
+        <div style="width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #fff; text-align: center; padding: 0.5rem; background: var(--gradient-primary);">
+          <span style="font-size: 2.75rem;">{{ book.icon or get_book_icon(book.title, book.category) }}</span>
           <span style="font-size: 0.7rem; font-weight: 700; margin-top: 0.25rem;">{{ book.title[:18] }}</span>
         </div>
         {% endif %}
@@ -28,7 +28,10 @@
 
       <div style="flex: 1; min-width: 250px;">
         <span class="badge badge-neutral" style="margin-bottom: 0.5rem;">{{ book.category }}</span>
-        <h1 style="font-size: 1.8rem; font-weight: 800; line-height: 1.25; margin-bottom: 0.35rem;">{{ book.title }}</h1>
+        <h1 style="font-size: 1.8rem; font-weight: 800; line-height: 1.25; margin-bottom: 0.35rem;">
+          <span class="book-icon-badge">{{ book.icon or get_book_icon(book.title, book.category) }}</span>
+          {{ book.title }}
+        </h1>
         <p style="color: var(--text-muted); font-size: 1rem; margin-bottom: 1rem;">by <strong>{{ book.author }}</strong></p>
 
         <!-- Average Rating Spotlight -->

@@ -4,6 +4,7 @@ import customtkinter as ctk
 import sqlite3
 import os
 import csv
+from app import get_book_icon
 
 # Configure CustomTkinter Appearance
 ctk.set_appearance_mode("System")  # Options: "System", "Dark", "Light"
@@ -512,9 +513,10 @@ Key Desktop Features:
             self.tree.delete(item)
 
         for b in books:
+            book_icon = get_book_icon(b["title"], b["category"])
             self.tree.insert("", "end", iid=b["id"], values=(
                 b["id"],
-                b["title"],
+                f"{book_icon}  {b['title']}",
                 b["author"],
                 b["category"],
                 b["status"]
