@@ -161,6 +161,31 @@ def init_db():
             for b in top_books:
                 cursor.execute("INSERT OR IGNORE INTO wishlist (user_id, book_id) VALUES (?, ?)", (u["id"], b["id"]))
 
+    # Seed representative sample borrow loans for due date countdown testing if <= 1 record
+    cursor.execute("SELECT COUNT(*) FROM borrow_records")
+    if cursor.fetchone()[0] <= 1:
+        cursor.execute("SELECT id FROM members LIMIT 2")
+        member_rows = cursor.fetchall()
+        cursor.execute("SELECT id FROM books WHERE status = 'Available' LIMIT 2")
+        avail_books = cursor.fetchall()
+        if member_rows and len(avail_books) >= 2:
+            m_id = member_rows[0]["id"]
+            b_overdue = avail_books[0]["id"]
+            b_due_soon = avail_books[1]["id"]
+            # Overdue loan (issued 17 days ago, due 3 days ago)
+            cursor.execute("""
+                INSERT INTO borrow_records (book_id, member_id, issue_date, due_date, status, fine_amount)
+                VALUES (?, ?, date('now', '-17 days'), date('now', '-3 days'), 'Issued', 15.0)
+            """, (b_overdue, m_id))
+            cursor.execute("UPDATE books SET status = 'Borrowed' WHERE id = ?", (b_overdue,))
+
+            # Due soon loan (issued 12 days ago, due in 2 days)
+            cursor.execute("""
+                INSERT INTO borrow_records (book_id, member_id, issue_date, due_date, status, fine_amount)
+                VALUES (?, ?, date('now', '-12 days'), date('now', '+2 days'), 'Issued', 0.0)
+            """, (b_due_soon, m_id))
+            cursor.execute("UPDATE books SET status = 'Borrowed' WHERE id = ?", (b_due_soon,))
+
     os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
     conn.commit()
     conn.close()
@@ -208,9 +233,112 @@ def get_book_icon(title="", category="", custom_icon=None):
     return "📖"
 
 
+def get_due_countdown(due_date_str, status="Issued"):
+    """
+    Computes a structured countdown dictionary for due dates with color coding,
+    badge classes, human-readable labels, and urgency levels.
+    """
+    if status != "Issued":
+        return {
+            "status": "returned",
+            "days_left": None,
+            "badge_class": "badge-success",
+            "badge_text": "Returned",
+            "countdown_text": "Completed",
+            "is_overdue": False,
+            "urgency": "success",
+            "icon": "✅"
+        }
+
+    try:
+        due_dt = datetime.strptime(str(due_date_str).strip(), "%Y-%m-%d").date()
+    except (ValueError, TypeError):
+        return {
+            "status": "issued",
+            "days_left": None,
+            "badge_class": "badge-neutral",
+            "badge_text": "Active Loan",
+            "countdown_text": str(due_date_str),
+            "is_overdue": False,
+            "urgency": "normal",
+            "icon": "📅"
+        }
+
+    today = date.today()
+    days_left = (due_dt - today).days
+
+    if days_left < 0:
+        overdue_days = abs(days_left)
+        day_str = "day" if overdue_days == 1 else "days"
+        return {
+            "status": "overdue",
+            "days_left": days_left,
+            "overdue_days": overdue_days,
+            "badge_class": "badge-danger",
+            "badge_text": f"Overdue ({overdue_days}d)",
+            "countdown_text": f"⚠️ Overdue by {overdue_days} {day_str}",
+            "is_overdue": True,
+            "urgency": "critical",
+            "icon": "⚠️",
+            "fine_preview": overdue_days * 5.0
+        }
+    elif days_left == 0:
+        return {
+            "status": "due_today",
+            "days_left": 0,
+            "overdue_days": 0,
+            "badge_class": "badge-danger",
+            "badge_text": "Due Today",
+            "countdown_text": "🚨 Due Today!",
+            "is_overdue": False,
+            "urgency": "critical",
+            "icon": "🚨",
+            "fine_preview": 0.0
+        }
+    elif days_left == 1:
+        return {
+            "status": "due_tomorrow",
+            "days_left": 1,
+            "overdue_days": 0,
+            "badge_class": "badge-warning",
+            "badge_text": "Due Tomorrow",
+            "countdown_text": "⏳ 1 day left",
+            "is_overdue": False,
+            "urgency": "warning",
+            "icon": "⏳",
+            "fine_preview": 0.0
+        }
+    elif days_left <= 3:
+        return {
+            "status": "due_soon",
+            "days_left": days_left,
+            "overdue_days": 0,
+            "badge_class": "badge-warning",
+            "badge_text": f"{days_left} days left",
+            "countdown_text": f"⏳ {days_left} days left",
+            "is_overdue": False,
+            "urgency": "warning",
+            "icon": "⏳",
+            "fine_preview": 0.0
+        }
+    else:
+        return {
+            "status": "on_track",
+            "days_left": days_left,
+            "overdue_days": 0,
+            "badge_class": "badge-info",
+            "badge_text": f"{days_left} days left",
+            "countdown_text": f"⏱️ {days_left} days left",
+            "is_overdue": False,
+            "urgency": "normal",
+            "icon": "⏱️",
+            "fine_preview": 0.0
+        }
+
+
 @app.context_processor
 def inject_user():
-    """Injects current_user dictionary, user_wishlist set, wishlist_count, and get_book_icon into all Jinja2 templates automatically."""
+    """Injects current_user dictionary, user_wishlist set, wishlist_count, get_book_icon, and get_due_countdown into all templates."""
     user_data = None
     user_wishlist = set()
     if "user_id" in session:
@@ -232,7 +360,8 @@ def inject_user():
         "current_user": user_data,
         "user_wishlist": user_wishlist,
         "wishlist_count": len(user_wishlist),
-        "get_book_icon": get_book_icon
+        "get_book_icon": get_book_icon,
+        "get_due_countdown": get_due_countdown
     }
 
 
@@ -296,18 +425,29 @@ def home_page():
 
     # User active borrows & reservations if logged in
     user_borrows = []
+    user_overdue_count = 0
+    user_due_soon_count = 0
     if "user_id" in session:
         user_email = session.get("email")
         member_row = conn.execute("SELECT id FROM members WHERE email = ?", (user_email,)).fetchone()
         if member_row:
             member_id = member_row["id"]
-            user_borrows = conn.execute("""
+            raw_borrows = conn.execute("""
                 SELECT br.*, b.title as book_title, b.author as book_author
                 FROM borrow_records br
                 JOIN books b ON br.book_id = b.id
                 WHERE br.member_id = ? AND br.status = 'Issued'
                 ORDER BY br.id DESC
             """, (member_id,)).fetchall()
+            for b in raw_borrows:
+                b_dict = dict(b)
+                cd = get_due_countdown(b_dict["due_date"], b_dict["status"])
+                b_dict["countdown"] = cd
+                if cd["is_overdue"]:
+                    user_overdue_count += 1
+                elif cd["urgency"] == "warning":
+                    user_due_soon_count += 1
+                user_borrows.append(b_dict)
 
     conn.close()
 
@@ -327,6 +467,8 @@ def home_page():
         categories=[c["category"] for c in categories],
         recent_reviews=recent_reviews,
         user_borrows=user_borrows,
+        user_overdue_count=user_overdue_count,
+        user_due_soon_count=user_due_soon_count,
         active_page="home"
     )
 
@@ -844,25 +986,45 @@ def borrow_page():
     
     today_str = date.today().isoformat()
     enriched_records = []
+    overdue_count = 0
+    due_soon_count = 0
+    calculated_total_fines = 0.0
+
     for r in records:
         r_dict = dict(r)
-        if r_dict["status"] == "Issued" and r_dict["due_date"] < today_str:
-            due_dt = datetime.strptime(r_dict["due_date"], "%Y-%m-%d").date()
-            overdue_days = (date.today() - due_dt).days
-            r_dict["calculated_fine"] = max(0, overdue_days * 5.0)
-            r_dict["overdue_days"] = overdue_days
+        cd = get_due_countdown(r_dict["due_date"], r_dict["status"])
+        r_dict["countdown"] = cd
+        if r_dict["status"] == "Issued":
+            if cd["is_overdue"]:
+                overdue_count += 1
+                r_dict["calculated_fine"] = max(0.0, cd["fine_preview"])
+                r_dict["overdue_days"] = cd["overdue_days"]
+                calculated_total_fines += r_dict["calculated_fine"]
+            else:
+                if cd["urgency"] == "warning":
+                    due_soon_count += 1
+                r_dict["calculated_fine"] = r_dict["fine_amount"] or 0.0
+                r_dict["overdue_days"] = 0
+                calculated_total_fines += r_dict["calculated_fine"]
         else:
             r_dict["calculated_fine"] = r_dict["fine_amount"] or 0.0
             r_dict["overdue_days"] = 0
+            calculated_total_fines += r_dict["calculated_fine"]
         enriched_records.append(r_dict)
 
     available_books = conn.execute("SELECT id, title, author FROM books WHERE status = 'Available'").fetchall()
     members = conn.execute("SELECT id, name, member_type FROM members ORDER BY name").fetchall()
     
     issued_count = conn.execute("SELECT COUNT(*) FROM borrow_records WHERE status = 'Issued'").fetchone()[0]
-    total_fines = conn.execute("SELECT SUM(fine_amount) FROM borrow_records").fetchone()[0] or 0.0
 
     conn.close()
+
+    stats = {
+        "issued": issued_count,
+        "overdue": overdue_count,
+        "due_soon": due_soon_count,
+        "total_fines": calculated_total_fines
+    }
 
     return render_template(
         "borrow.html",
@@ -870,7 +1032,7 @@ def borrow_page():
         available_books=available_books,
         members=members,
         search_query=search_query,
-        stats={"issued": issued_count, "total_fines": total_fines},
+        stats=stats,
         today_date=today_str,
         default_due_date=(date.today() + timedelta(days=14)).isoformat()
     )

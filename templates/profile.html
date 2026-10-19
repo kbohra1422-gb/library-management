@@ -110,18 +110,24 @@
           </tr>
           {% else %}
           {% for b in borrows %}
+          {% set cd = get_due_countdown(b.due_date, b.status) %}
           <tr>
             <td style="font-family: var(--font-mono); color: var(--text-subtle);">#{{ b.id }}</td>
             <td style="font-weight: 700;">{{ b.book_title }}</td>
             <td>{{ b.issue_date }}</td>
-            <td style="font-weight: 600;">{{ b.due_date }}</td>
+            <td>
+              <div style="font-weight: 600;">{{ b.due_date }}</div>
+              {% if b.status == 'Issued' %}
+              <div class="due-countdown-chip {{ cd.urgency }}">
+                <span>{{ cd.icon }}</span> {{ cd.countdown_text }}
+              </div>
+              {% endif %}
+            </td>
             <td>{{ b.return_date or '—' }}</td>
             <td>
-              {% if b.status == 'Issued' %}
-              <span class="badge badge-warning"><span class="badge-dot"></span> On Loan</span>
-              {% else %}
-              <span class="badge badge-success"><span class="badge-dot"></span> Returned</span>
-              {% endif %}
+              <span class="badge {{ cd.badge_class }}">
+                <span class="badge-dot"></span> {{ cd.badge_text }}
+              </span>
             </td>
             <td>
               {% if b.fine_amount and b.fine_amount > 0 %}

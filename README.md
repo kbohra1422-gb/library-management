@@ -135,7 +135,7 @@ library_management/
     ├── profile.html         # User settings, password management & Want to Read collection
     ├── index.html           # Full Books Catalog management & filtering
     ├── members.html         # Member directory
-    ├── borrow.html          # Circulation issue/return desk
+    ├── borrow.html          # Circulation issue/return desk with Due Date Countdown & Overdue Alerts
     ├── reservations.html    # Book hold requests
     ├── analytics.html       # Chart.js visual statistics
     ├── reader.html          # In-browser E-Book PDF reader

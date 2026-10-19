@@ -89,11 +89,42 @@
 
   <!-- User Active Borrows Section (If any) -->
   {% if user_borrows %}
+  {% if user_overdue_count and user_overdue_count > 0 %}
+  <div class="overdue-alert-banner">
+    <div style="display: flex; align-items: center; gap: 0.85rem;">
+      <span style="font-size: 1.65rem;">🚨</span>
+      <div>
+        <div style="font-weight: 800; color: #f87171;">
+          Overdue Return Notice: {{ user_overdue_count }} of your borrowed {{ 'book is' if user_overdue_count == 1 else 'books are' }} past due date!
+        </div>
+        <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 2px;">
+          Please return your book to the circulation desk to avoid additional late fee accrual of ₹5.00/day.
+        </div>
+      </div>
+    </div>
+    <a href="{{ url_for('profile_page') }}" class="btn btn-danger btn-sm">
+      <span>📄</span> View Loan Details
+    </a>
+  </div>
+  {% elif user_due_soon_count and user_due_soon_count > 0 %}
+  <div class="card" style="border-left: 4px solid var(--status-warning); padding: 1rem 1.25rem; margin-bottom: 1.5rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;">
+    <div style="display: flex; align-items: center; gap: 0.75rem;">
+      <span style="font-size: 1.5rem;">⏳</span>
+      <div>
+        <div style="font-weight: 700; color: var(--status-warning);">
+          Due Date Approaching: You have {{ user_due_soon_count }} {{ 'book' if user_due_soon_count == 1 else 'books' }} due within 3 days
+        </div>
+        <div style="font-size: 0.85rem; color: var(--text-muted);">Check your loan details below to return or renew on time.</div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
   <section class="card" style="border-left: 4px solid var(--primary-500); margin-bottom: 2.5rem;">
     <div class="card-header">
       <div>
         <h2 class="card-title"><span>🔖</span> Your Current Book Loans</h2>
-        <p class="card-subtitle">Books currently issued under your account</p>
+        <p class="card-subtitle">Books currently issued under your patron account</p>
       </div>
       <a href="{{ url_for('profile_page') }}" class="btn btn-secondary btn-sm">View Full History</a>
     </div>
@@ -104,13 +135,14 @@
           <tr>
             <th>Book Title</th>
             <th>Issue Date</th>
-            <th>Due Date</th>
+            <th>Due Date & Countdown</th>
             <th>Status</th>
             <th>Receipt</th>
           </tr>
         </thead>
         <tbody>
           {% for b in user_borrows %}
+          {% set cd = b.countdown if b.countdown else get_due_countdown(b.due_date, b.status) %}
           <tr>
             <td>
               <div style="font-weight: 700;">{{ b.book_title }}</div>
@@ -118,11 +150,14 @@
             </td>
             <td>{{ b.issue_date }}</td>
             <td>
-              <span style="font-weight: 700; color: var(--status-warning);">{{ b.due_date }}</span>
+              <div style="font-weight: 700; color: var(--text-main);">{{ b.due_date }}</div>
+              <div class="due-countdown-chip {{ cd.urgency }}" title="{{ cd.countdown_text }}">
+                <span>{{ cd.icon }}</span> {{ cd.countdown_text }}
+              </div>
             </td>
             <td>
-              <span class="badge badge-warning">
-                <span class="badge-dot"></span> Active Loan
+              <span class="badge {{ cd.badge_class }}">
+                <span class="badge-dot"></span> {{ cd.badge_text }}
               </span>
             </td>
             <td>
