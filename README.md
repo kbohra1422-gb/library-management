@@ -87,6 +87,14 @@ python main.py --tkinter
 | `role` | `TEXT` | `DEFAULT 'Student'` | Role (`Admin`, `Librarian`, `Faculty`, `Student`) |
 | `created_at` | `TIMESTAMP` | `DEFAULT CURRENT_TIMESTAMP` | Account Registration Date |
 
+### `wishlist` Table
+| Column Name | Data Type | Constraint | Description |
+| :--- | :--- | :--- | :--- |
+| `id` | `INTEGER` | `PRIMARY KEY AUTOINCREMENT` | Unique Identifier |
+| `user_id` | `INTEGER` | `NOT NULL` | Foreign key referencing `users(id)` |
+| `book_id` | `INTEGER` | `NOT NULL` | Foreign key referencing `books(id)` |
+| `created_at` | `TIMESTAMP` | `DEFAULT CURRENT_TIMESTAMP` | Bookmark Saved Date |
+
 ---
 
 ## 🔑 Default Demo Accounts
@@ -115,14 +123,16 @@ library_management/
 ├── README.md                # Project Architecture & Features Guide
 ├── USER_MANUAL.md           # Desktop & Web Application User Manual
 ├── static/
-│   ├── style.css            # Modern Glassmorphic CSS Design System
+│   ├── css/style.css        # Modern Glassmorphic CSS Design System
+│   ├── style.css            # Mirrored CSS Bundle
 │   └── uploads/pdfs/        # E-Book PDF repository
 └── templates/
-    ├── navbar.html          # Global reusable navigation bar with auth pill
+    ├── base.html            # Global base template with responsive navbar & theme engine
     ├── home.html            # Main Library Landing & Dashboard Portal
+    ├── wishlist.html        # "Want to Read" Curated Personal Reading Wishlist
     ├── login.html           # Glassmorphic user login with 1-click demo fill
     ├── register.html        # Account creation & role registration
-    ├── profile.html         # User settings, password management & borrow logs
+    ├── profile.html         # User settings, password management & Want to Read collection
     ├── index.html           # Full Books Catalog management & filtering
     ├── members.html         # Member directory
     ├── borrow.html          # Circulation issue/return desk

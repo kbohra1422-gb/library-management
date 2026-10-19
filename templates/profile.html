@@ -143,5 +143,88 @@
     </div>
   </div>
 
+  <!-- 4. Want to Read Reading List -->
+  <div class="card" id="wishlist" style="padding: 0; overflow: hidden; margin-top: 2rem;">
+    <div class="card-header" style="padding: 1.25rem 1.5rem; margin-bottom: 0;">
+      <div>
+        <h2 class="card-title" style="font-size: 1.15rem;"><span>🔖</span> My "Want to Read" Reading List ({{ wishlist_books|length }})</h2>
+        <p class="card-subtitle">Books you've bookmarked to explore and borrow</p>
+      </div>
+      <a href="{{ url_for('wishlist_page') }}" class="btn btn-secondary btn-sm">
+        <span>📖</span> Open Full Wishlist Shelf
+      </a>
+    </div>
+
+    <div class="table-responsive">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Book Title & Details</th>
+            <th>Genre</th>
+            <th>Availability</th>
+            <th>Saved Date</th>
+            <th style="text-align: right;">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if wishlist_books|length == 0 %}
+          <tr>
+            <td colspan="5" style="text-align: center; padding: 2.5rem; color: var(--text-muted);">
+              You currently have no books on your reading list. <a href="{{ url_for('books_catalog') }}" style="color: var(--primary-400); font-weight: 600;">Browse the Catalog</a> to save your favorites!
+            </td>
+          </tr>
+          {% else %}
+          {% for wb in wishlist_books %}
+          {% set wb_icon = wb.icon if wb.icon else get_book_icon(wb.title, wb.category) %}
+          <tr>
+            <td>
+              <div style="display: flex; align-items: center; gap: 0.75rem;">
+                <div class="book-table-avatar">{{ wb_icon }}</div>
+                <div>
+                  <div style="font-weight: 700; color: var(--text-main);">{{ wb.title }}</div>
+                  <div style="font-size: 0.82rem; color: var(--text-muted);">by {{ wb.author }}</div>
+                </div>
+              </div>
+            </td>
+            <td><span class="badge badge-neutral">{{ wb.category }}</span></td>
+            <td>
+              {% if wb.status == 'Available' %}
+              <span class="badge badge-success"><span class="badge-dot"></span> In Stock ({{ wb.available_copies or 1 }})</span>
+              {% else %}
+              <span class="badge badge-warning"><span class="badge-dot"></span> Borrowed</span>
+              {% endif %}
+            </td>
+            <td style="font-size: 0.85rem; color: var(--text-muted);">
+              {{ wb.saved_at[:10] if wb.saved_at else 'Recent' }}
+            </td>
+            <td style="text-align: right;">
+              <div style="display: inline-flex; gap: 0.35rem;">
+                {% if wb.pdf_url %}
+                <a href="{{ url_for('e_book_reader', book_id=wb.id) }}" class="btn btn-primary btn-sm" title="Read E-Book">
+                  <span>💻</span> Read
+                </a>
+                {% endif %}
+                {% if wb.status == 'Available' %}
+                <a href="{{ url_for('borrow_page') }}" class="btn btn-secondary btn-sm" title="Borrow this title">
+                  <span>🔄</span> Borrow
+                </a>
+                {% else %}
+                <a href="{{ url_for('reservations_page') }}" class="btn btn-secondary btn-sm" title="Hold reservation">
+                  <span>📌</span> Hold
+                </a>
+                {% endif %}
+                <a href="{{ url_for('toggle_wishlist', book_id=wb.id) }}" class="btn btn-danger btn-sm" title="Remove from list" onclick="return confirm('Remove \'{{ wb.title }}\' from your Want to Read list?')">
+                  <span>✕</span>
+                </a>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
 </div>
 {% endblock %}

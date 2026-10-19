@@ -46,6 +46,12 @@
           </a>
         </li>
         <li>
+          <a href="{{ url_for('wishlist_page') }}" class="nav-link {% if active_page == 'wishlist' %}active{% endif %}" title="View your Want to Read reading list">
+            <span>🔖</span> Want to Read
+            <span class="badge badge-warning" id="globalWishlistBadge" style="font-size: 0.7rem; padding: 0.15rem 0.45rem; border-radius: 999px; margin-left: 0.25rem; {% if not wishlist_count %}display: none;{% endif %}">{{ wishlist_count or 0 }}</span>
+          </a>
+        </li>
+        <li>
           <a href="{{ url_for('analytics_page') }}" class="nav-link {% if active_page == 'analytics' %}active{% endif %}">
             <span>📊</span> Analytics
           </a>
@@ -159,6 +165,53 @@
           setTimeout(() => al.remove(), 400);
         });
       }, 5000);
+
+      // Real-time Wishlist / Want to Read toggle handler
+      document.addEventListener('click', function(e) {
+        const toggleBtn = e.target.closest('.book-wishlist-toggle, .book-wishlist-btn');
+        if (!toggleBtn) return;
+        
+        e.preventDefault();
+        const url = toggleBtn.getAttribute('href');
+        const bookId = toggleBtn.getAttribute('data-book-id');
+
+        fetch(url, {
+          method: 'POST',
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'Content-Type': 'application/json'
+          }
+        })
+        .then(res => res.json())
+        .then(data => {
+          if (data && data.success) {
+            // Update all toggle buttons for this book on the current page
+            document.querySelectorAll(`[data-book-id="${bookId}"]`).forEach(btn => {
+              if (btn.classList.contains('book-wishlist-toggle')) {
+                btn.classList.toggle('active', data.saved);
+                const txt = btn.querySelector('.wishlist-text');
+                if (txt) txt.textContent = data.saved ? 'Saved' : 'Want to Read';
+                btn.title = data.saved ? 'Remove from Want to Read' : 'Add to Want to Read';
+              } else if (btn.classList.contains('book-wishlist-btn')) {
+                btn.classList.toggle('btn-warning', data.saved);
+                btn.classList.toggle('btn-secondary', !data.saved);
+                btn.classList.toggle('active', data.saved);
+                btn.title = data.saved ? 'Remove from Want to Read' : 'Save to Want to Read';
+              }
+            });
+
+            // Update navbar badge
+            const badge = document.getElementById('globalWishlistBadge');
+            if (badge) {
+              badge.textContent = data.count;
+              badge.style.display = data.count > 0 ? 'inline-flex' : 'none';
+            }
+          }
+        })
+        .catch(err => {
+          window.location.href = url;
+        });
+      });
     })();
   </script>
   {% block scripts %}{% endblock %}

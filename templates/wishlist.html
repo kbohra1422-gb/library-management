@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+
+{% block title %}Want to Read - My Reading Wishlist{% endblock %}
+
+{% block content %}
+<div class="container" style="padding-top: 1.5rem; padding-bottom: 3.5rem;">
+
+  <!-- Header Banner -->
+  <div class="card" style="margin-bottom: 2rem; background: radial-gradient(circle at top right, rgba(245, 158, 11, 0.12), transparent 40%), var(--bg-card); border-left: 4px solid var(--status-warning);">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1.5rem;">
+      <div>
+        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.35rem;">
+          <h1 style="font-size: 1.85rem; font-weight: 800; letter-spacing: -0.02em;">
+            <span>🔖</span> My "Want to Read" Shelf
+          </h1>
+          <span class="badge badge-warning" style="font-size: 0.85rem;">
+            {{ total_count }} {{ 'Book' if total_count == 1 else 'Books' }} Saved
+          </span>
+        </div>
+        <p style="color: var(--text-muted); font-size: 0.95rem; max-width: 620px;">
+          Your curated personal queue of reading goals, upcoming literature, and digital e-books.
+        </p>
+
+        <!-- Quick Stats Chips -->
+        <div style="display: flex; gap: 0.75rem; margin-top: 1rem; flex-wrap: wrap;">
+          <span class="badge badge-neutral">
+            📚 Total Saved: <strong style="color: var(--text-main); margin-left: 4px;">{{ total_count }}</strong>
+          </span>
+          <span class="badge badge-success">
+            <span class="badge-dot"></span> Ready to Borrow: <strong style="margin-left: 4px;">{{ available_count }}</strong>
+          </span>
+          <span class="badge badge-info">
+            💻 E-Books: <strong style="margin-left: 4px;">{{ ebooks_count }}</strong>
+          </span>
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
+        <a href="{{ url_for('books_catalog') }}" class="btn btn-primary">
+          <span>➕</span> Explore More Books
+        </a>
+        <a href="{{ url_for('profile_page') }}" class="btn btn-secondary">
+          <span>👤</span> View Profile
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Content Section -->
+  {% if books|length == 0 %}
+  <div class="card" style="text-align: center; padding: 4.5rem 2rem;">
+    <div style="font-size: 3.5rem; margin-bottom: 1rem; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.2));">🔖</div>
+    <h3 style="font-size: 1.45rem; font-weight: 800; margin-bottom: 0.5rem;">Your reading shelf is empty</h3>
+    <p style="color: var(--text-muted); max-width: 480px; margin: 0 auto 1.75rem; line-height: 1.5;">
+      You haven't bookmarked any titles yet. Browse through our catalog and click the <strong>"Want to Read"</strong> bookmark button on any title to save it here for later.
+    </p>
+    <a href="{{ url_for('books_catalog') }}" class="btn btn-primary btn-lg">
+      <span>📖</span> Browse Book Catalog
+    </a>
+  </div>
+  {% else %}
+
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+    <div style="font-size: 0.92rem; color: var(--text-muted);">
+      Showing <strong>{{ books|length }}</strong> saved {{ 'book' if books|length == 1 else 'books' }}
+    </div>
+    <div style="font-size: 0.85rem; color: var(--text-subtle);">
+      💡 Click <strong>🔖 Saved</strong> on any card to remove it from this shelf
+    </div>
+  </div>
+
+  <!-- Books Grid -->
+  <div class="books-grid" id="wishlistGridView">
+    {% for book in books %}
+    {% set book_icon = book.icon if book.icon else get_book_icon(book.title, book.category) %}
+    <div class="book-card" id="wishlistCard-{{ book.id }}">
+      <div class="book-cover-wrap">
+        {% if book.cover_url %}
+        <img src="{{ book.cover_url }}" alt="{{ book.title }} Cover" class="book-cover-img" loading="lazy">
+        {% else %}
+        <div class="book-cover-fallback">
+          <span class="icon">{{ book_icon }}</span>
+          <span style="font-size: 0.72rem; font-weight: 700; line-height: 1.2;">{{ book.title[:24] }}</span>
+        </div>
+        {% endif %}
+
+        <!-- Want to Read Pill Toggle -->
+        <a href="{{ url_for('toggle_wishlist', book_id=book.id) }}"
+           class="book-wishlist-toggle active"
+           data-book-id="{{ book.id }}"
+           title="Remove from Want to Read">
+          <span class="wishlist-icon">🔖</span>
+          <span class="wishlist-text">Saved</span>
+        </a>
+
+        <!-- Status Badge -->
+        <div class="book-cover-badge">
+          {% if book.status == 'Available' %}
+          <span class="badge badge-success"><span class="badge-dot"></span> In Stock ({{ book.available_copies or 1 }})</span>
+          {% else %}
+          <span class="badge badge-warning"><span class="badge-dot"></span> Borrowed</span>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="book-body">
+        <div class="book-category">{{ book.category }}</div>
+        <h3 class="book-title" title="{{ book.title }}">
+          <span class="book-icon-badge">{{ book_icon }}</span>
+          {{ book.title }}
+        </h3>
+        <div class="book-author">by {{ book.author }}</div>
+
+        <div class="book-meta">
+          <span>Copies: {{ book.available_copies or 0 }} / {{ book.total_copies or 1 }}</span>
+          {% if book.saved_at %}
+          <span style="font-size: 0.75rem; color: var(--text-subtle);">Saved {{ book.saved_at[:10] }}</span>
+          {% endif %}
+        </div>
+
+        <div class="book-actions">
+          {% if book.pdf_url %}
+          <a href="{{ url_for('e_book_reader', book_id=book.id) }}" class="btn btn-primary btn-sm" title="Read Online PDF">
+            <span>💻</span> Read
+          </a>
+          {% endif %}
+
+          {% if book.status == 'Available' %}
+          <a href="{{ url_for('borrow_page') }}" class="btn btn-secondary btn-sm" style="flex: 1;" title="Issue this book">
+            <span>🔄</span> Borrow
+          </a>
+          {% else %}
+          <a href="{{ url_for('reservations_page') }}" class="btn btn-secondary btn-sm" style="flex: 1;" title="Place hold reservation">
+            <span>📌</span> Hold
+          </a>
+          {% endif %}
+
+          <a href="{{ url_for('book_reviews', book_id=book.id) }}" class="btn btn-secondary btn-sm" title="Reviews & Ratings">
+            <span>⭐</span>
+          </a>
+
+          <a href="{{ url_for('toggle_wishlist', book_id=book.id) }}"
+             class="btn btn-danger btn-sm book-wishlist-btn active"
+             data-book-id="{{ book.id }}"
+             title="Remove from Want to Read"
+             onclick="return confirm('Remove \'{{ book.title }}\' from your Want to Read list?')">
+            <span>✕</span>
+          </a>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  {% endif %}
+
+</div>
+{% endblock %}

@@ -59,6 +59,17 @@ def init_db():
             FOREIGN KEY (member_id) REFERENCES members(id)
         )
     """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS wishlist (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            book_id INTEGER NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(user_id, book_id),
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+            FOREIGN KEY (book_id) REFERENCES books(id) ON DELETE CASCADE
+        )
+    """)
 
     cursor = conn.cursor()
     cursor.execute("PRAGMA table_info(books)")

@@ -139,6 +139,15 @@
         </div>
         {% endif %}
 
+        <!-- Want to Read Bookmark Pill -->
+        <a href="{{ url_for('toggle_wishlist', book_id=book.id) }}"
+           class="book-wishlist-toggle {% if book.id in user_wishlist %}active{% endif %}"
+           data-book-id="{{ book.id }}"
+           title="{{ 'Remove from Want to Read' if book.id in user_wishlist else 'Add to Want to Read' }}">
+          <span class="wishlist-icon">🔖</span>
+          <span class="wishlist-text">{% if book.id in user_wishlist %}Saved{% else %}Want to Read{% endif %}</span>
+        </a>
+
         <div class="book-cover-badge">
           {% if book.status == 'Available' %}
           <span class="badge badge-success"><span class="badge-dot"></span> In Stock ({{ book.available_copies or 1 }})</span>
@@ -164,6 +173,13 @@
         </div>
 
         <div class="book-actions">
+          <a href="{{ url_for('toggle_wishlist', book_id=book.id) }}"
+             class="btn btn-sm {% if book.id in user_wishlist %}btn-warning active{% else %}btn-secondary{% endif %} book-wishlist-btn"
+             data-book-id="{{ book.id }}"
+             title="{{ 'Remove from Want to Read' if book.id in user_wishlist else 'Save to Want to Read' }}">
+            <span>🔖</span>
+          </a>
+
           {% if book.pdf_url %}
           <a href="{{ url_for('e_book_reader', book_id=book.id) }}" class="btn btn-primary btn-sm" title="Read E-Book PDF">
             <span>💻</span> Read
@@ -234,6 +250,10 @@
             </td>
             <td style="text-align: right;">
               <div style="display: inline-flex; gap: 0.35rem;">
+                <a href="{{ url_for('toggle_wishlist', book_id=book.id) }}"
+                   class="btn btn-sm {% if book.id in user_wishlist %}btn-warning active{% else %}btn-secondary{% endif %} book-wishlist-btn"
+                   data-book-id="{{ book.id }}"
+                   title="{{ 'Remove from Want to Read' if book.id in user_wishlist else 'Add to Want to Read' }}">🔖</a>
                 {% if book.pdf_url %}
                 <a href="{{ url_for('e_book_reader', book_id=book.id) }}" class="btn btn-primary btn-sm" title="Read E-Book">💻</a>
                 {% endif %}

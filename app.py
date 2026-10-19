@@ -101,6 +101,18 @@ def init_db():
         )
     """)
 
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS wishlist (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            book_id INTEGER NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(user_id, book_id),
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+            FOREIGN KEY (book_id) REFERENCES books(id) ON DELETE CASCADE
+        )
+    """)
+
     cursor = conn.cursor()
     cursor.execute("PRAGMA table_info(books)")
     existing_cols = [row[1] for row in cursor.fetchall()]
@@ -137,6 +149,17 @@ def init_db():
             INSERT INTO users (username, email, password_hash, full_name, role)
             VALUES (?, ?, ?, ?, ?)
         """, ("student", "student@library.local", student_hash, "Rahul Student", "Student"))
+
+    # Seed sample 3 "Want to Read" books for users if wishlist is empty
+    cursor.execute("SELECT COUNT(*) FROM wishlist")
+    if cursor.fetchone()[0] == 0:
+        cursor.execute("SELECT id FROM books ORDER BY id ASC LIMIT 3")
+        top_books = cursor.fetchall()
+        cursor.execute("SELECT id FROM users")
+        all_users = cursor.fetchall()
+        for u in all_users:
+            for b in top_books:
+                cursor.execute("INSERT OR IGNORE INTO wishlist (user_id, book_id) VALUES (?, ?)", (u["id"], b["id"]))
 
     os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
     conn.commit()
@@ -187,8 +210,9 @@ def get_book_icon(title="", category="", custom_icon=None):
 
 @app.context_processor
 def inject_user():
-    """Injects current_user dictionary and get_book_icon into all Jinja2 templates automatically."""
+    """Injects current_user dictionary, user_wishlist set, wishlist_count, and get_book_icon into all Jinja2 templates automatically."""
     user_data = None
+    user_wishlist = set()
     if "user_id" in session:
         user_data = {
             "id": session.get("user_id"),
@@ -197,8 +221,17 @@ def inject_user():
             "full_name": session.get("full_name"),
             "role": session.get("role", "Member")
         }
+        try:
+            conn = get_db_connection()
+            rows = conn.execute("SELECT book_id FROM wishlist WHERE user_id = ?", (session["user_id"],)).fetchall()
+            user_wishlist = {r["book_id"] for r in rows}
+            conn.close()
+        except Exception:
+            user_wishlist = set()
     return {
         "current_user": user_data,
+        "user_wishlist": user_wishlist,
+        "wishlist_count": len(user_wishlist),
         "get_book_icon": get_book_icon
     }
 
@@ -375,6 +408,86 @@ def books_catalog():
         active_page="books"
     )
 
+
+@app.route("/wishlist")
+@login_required
+def wishlist_page():
+    """Personal 'Want to Read' Reading Wishlist Collection."""
+    user_id = session["user_id"]
+    conn = get_db_connection()
+    wishlist_books = conn.execute("""
+        SELECT b.*, w.created_at as saved_at
+        FROM wishlist w
+        JOIN books b ON w.book_id = b.id
+        WHERE w.user_id = ?
+        ORDER BY w.id DESC
+    """, (user_id,)).fetchall()
+
+    total_count = len(wishlist_books)
+    available_count = sum(1 for b in wishlist_books if b["status"] == "Available")
+    ebooks_count = sum(1 for b in wishlist_books if b["pdf_url"])
+    conn.close()
+
+    return render_template(
+        "wishlist.html",
+        books=wishlist_books,
+        total_count=total_count,
+        available_count=available_count,
+        ebooks_count=ebooks_count,
+        active_page="wishlist"
+    )
+
+
+@app.route("/wishlist/toggle/<int:book_id>", methods=["GET", "POST"])
+@login_required
+def toggle_wishlist(book_id):
+    """Toggles a book in/out of the user's 'Want to Read' list."""
+    user_id = session["user_id"]
+    conn = get_db_connection()
+    book = conn.execute("SELECT id, title FROM books WHERE id = ?", (book_id,)).fetchone()
+    if not book:
+        conn.close()
+        flash("Book record not found.", "danger")
+        return redirect(request.referrer or url_for("books_catalog"))
+
+    existing = conn.execute(
+        "SELECT id FROM wishlist WHERE user_id = ? AND book_id = ?",
+        (user_id, book_id)
+    ).fetchone()
+
+    if existing:
+        conn.execute("DELETE FROM wishlist WHERE id = ?", (existing["id"],))
+        conn.commit()
+        is_saved = False
+        message = f"Removed '{book['title']}' from your 'Want to Read' list."
+        flash(message, "info")
+    else:
+        conn.execute(
+            "INSERT INTO wishlist (user_id, book_id) VALUES (?, ?)",
+            (user_id, book_id)
+        )
+        conn.commit()
+        is_saved = True
+        message = f"Added '{book['title']}' to your 'Want to Read' list! 🔖"
+        flash(message, "success")
+
+    count_row = conn.execute(
+        "SELECT COUNT(*) FROM wishlist WHERE user_id = ?",
+        (user_id,)
+    ).fetchone()
+    new_count = count_row[0] if count_row else 0
+    conn.close()
+
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.is_json:
+        return jsonify({
+            "success": True,
+            "book_id": book_id,
+            "saved": is_saved,
+            "count": new_count,
+            "message": message
+        })
+
+    return redirect(request.referrer or url_for("books_catalog"))
 
 
 @app.route("/api/isbn/<isbn>")
@@ -1180,12 +1293,22 @@ def profile_page():
             ORDER BY br.id DESC
         """, (member_row["id"],)).fetchall()
 
+    # Find Want to Read books for this user
+    wishlist_books = conn.execute("""
+        SELECT b.*, w.created_at as saved_at
+        FROM wishlist w
+        JOIN books b ON w.book_id = b.id
+        WHERE w.user_id = ?
+        ORDER BY w.id DESC
+    """, (session["user_id"],)).fetchall()
+
     conn.close()
 
     return render_template(
         "profile.html",
         user=user,
         borrows=borrows,
+        wishlist_books=wishlist_books,
         active_page="profile"
     )
 
