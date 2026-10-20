@@ -1226,6 +1226,15 @@ def issue_book():
                 "UPDATE books SET available_copies = ?, status = ? WHERE id = ?",
                 (new_avail, new_status, book_id)
             )
+            # Auto-fulfill any pending or ready reservation this patron had for this title
+            conn.execute(
+                """
+                UPDATE reservations
+                SET status = 'Fulfilled'
+                WHERE book_id = ? AND member_id = ? AND status IN ('Pending', 'Ready')
+                """,
+                (book_id, member_id)
+            )
             conn.commit()
             flash(f'Book "{book["title"]}" issued to {member["name"]} successfully! ({new_avail} of {total_c} copies remaining in stock)', "success")
         else:
@@ -1244,7 +1253,11 @@ def return_book(id):
     record = conn.execute("SELECT * FROM borrow_records WHERE id = ?", (id,)).fetchone()
 
     if record and record["status"] == "Issued":
-        due_dt = datetime.strptime(record["due_date"], "%Y-%m-%d").date()
+        try:
+            clean_due = str(record["due_date"]).strip().split()[0].split("T")[0]
+            due_dt = datetime.strptime(clean_due, "%Y-%m-%d").date()
+        except (ValueError, TypeError):
+            due_dt = date.today()
         today_dt = date.today()
         fine = 0.0
         if today_dt > due_dt:
@@ -1422,26 +1435,57 @@ def borrow_receipt(id):
 @app.route("/reservations")
 @login_required
 def reservations_page():
+    search_query = request.args.get("q", "").strip()
+    status_filter = request.args.get("status", "").strip()
     conn = get_db_connection()
-    reservations = conn.execute("""
+
+    query = """
         SELECT res.id, res.book_id, res.member_id, res.request_date, res.status,
                b.title as book_title, b.author as book_author, b.status as book_status,
                m.name as member_name, m.email as member_email
         FROM reservations res
         JOIN books b ON res.book_id = b.id
         JOIN members m ON res.member_id = m.id
-        ORDER BY res.id DESC
-    """).fetchall()
+        WHERE 1=1
+    """
+    params = []
+    if search_query:
+        query += " AND (b.title LIKE ? OR m.name LIKE ? OR res.status LIKE ?)"
+        wildcard = f"%{search_query}%"
+        params.extend([wildcard, wildcard, wildcard])
+
+    if status_filter in ["Ready", "Pending", "Fulfilled", "Cancelled"]:
+        query += " AND res.status = ?"
+        params.append(status_filter)
+
+    query += " ORDER BY res.id DESC"
+    reservations = conn.execute(query, params).fetchall()
 
     borrowed_books = conn.execute("SELECT id, title, author FROM books WHERE status = 'Borrowed'").fetchall()
     members = conn.execute("SELECT id, name FROM members ORDER BY name").fetchall()
+
+    total_holds = conn.execute("SELECT COUNT(*) FROM reservations").fetchone()[0]
+    ready_holds = conn.execute("SELECT COUNT(*) FROM reservations WHERE status = 'Ready'").fetchone()[0]
+    pending_holds = conn.execute("SELECT COUNT(*) FROM reservations WHERE status = 'Pending'").fetchone()[0]
+    fulfilled_holds = conn.execute("SELECT COUNT(*) FROM reservations WHERE status = 'Fulfilled'").fetchone()[0]
     conn.close()
+
+    stats = {
+        "total": total_holds,
+        "ready": ready_holds,
+        "pending": pending_holds,
+        "fulfilled": fulfilled_holds
+    }
 
     return render_template(
         "reservations.html",
         reservations=reservations,
         borrowed_books=borrowed_books,
-        members=members
+        members=members,
+        stats=stats,
+        search_query=search_query,
+        selected_status=status_filter,
+        active_page="reservations"
     )
 
 

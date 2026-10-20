@@ -35,11 +35,46 @@
     </div>
   </div>
 
+  <!-- Quick Status Filter Pills & Search -->
+  <div class="card" style="padding: 1.25rem; margin-bottom: 1.5rem;">
+    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem; align-items: center;">
+      <span style="font-size: 0.82rem; font-weight: 700; color: var(--text-muted); margin-right: 0.25rem;">Filter Holds:</span>
+      <a href="{{ url_for('reservations_page', q=search_query) }}" class="btn btn-sm {% if not selected_status %}btn-primary{% else %}btn-secondary{% endif %}" style="border-radius: 999px;">
+        All Holds ({{ stats.total }})
+      </a>
+      <a href="{{ url_for('reservations_page', q=search_query, status='Ready') }}" class="btn btn-sm {% if selected_status == 'Ready' %}btn-warning{% else %}btn-secondary{% endif %}" style="border-radius: 999px;">
+        <span>⚡</span> Ready for Pickup ({{ stats.ready }})
+      </a>
+      <a href="{{ url_for('reservations_page', q=search_query, status='Pending') }}" class="btn btn-sm {% if selected_status == 'Pending' %}btn-primary{% else %}btn-secondary{% endif %}" style="border-radius: 999px;">
+        <span>⏳</span> Waiting Queue ({{ stats.pending }})
+      </a>
+      <a href="{{ url_for('reservations_page', q=search_query, status='Fulfilled') }}" class="btn btn-sm {% if selected_status == 'Fulfilled' %}btn-success{% else %}btn-secondary{% endif %}" style="border-radius: 999px;">
+        <span>✅</span> Fulfilled ({{ stats.fulfilled }})
+      </a>
+    </div>
+
+    <form method="GET" action="{{ url_for('reservations_page') }}">
+      {% if selected_status %}
+      <input type="hidden" name="status" value="{{ selected_status }}">
+      {% endif %}
+      <div class="toolbar" style="margin-bottom: 0;">
+        <div class="search-box">
+          <span class="search-icon">🔍</span>
+          <input type="text" name="q" value="{{ search_query }}" class="form-control" placeholder="Search holds by book title, member name, or status...">
+        </div>
+        <button type="submit" class="btn btn-secondary">Search</button>
+        {% if search_query or selected_status %}
+        <a href="{{ url_for('reservations_page') }}" class="btn btn-secondary">Clear</a>
+        {% endif %}
+      </div>
+    </form>
+  </div>
+
   <!-- Reservations Table -->
   <div class="card" style="padding: 0; overflow: hidden;">
     <div class="card-header" style="padding: 1.25rem 1.5rem; margin-bottom: 0;">
       <h2 class="card-title" style="font-size: 1.15rem;">
-        <span>📋</span> Active Queue ({{ reservations|length }} requests)
+        <span>📋</span> Hold Queue ({{ reservations|length }} record{{ 's' if reservations|length != 1 else '' }})
       </h2>
     </div>
 
@@ -60,7 +95,11 @@
           {% if reservations|length == 0 %}
           <tr>
             <td colspan="7" style="text-align: center; padding: 3rem; color: var(--text-muted);">
+              {% if search_query or selected_status %}
+              No reservations matched your search query or filter. <a href="{{ url_for('reservations_page') }}" style="color: var(--primary-400);">Reset filter</a>
+              {% else %}
               No active reservations in the queue. Click "Place Book on Hold" to reserve a borrowed title.
+              {% endif %}
             </td>
           </tr>
           {% else %}
