@@ -1469,12 +1469,29 @@ def book_reviews(book_id):
     avg_rating = round(avg_rating_row["avg_rating"], 1) if avg_rating_row["avg_rating"] else None
     review_count = avg_rating_row["count"]
 
+    # Calculate star distribution breakdown
+    star_counts = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0}
+    for r in reviews:
+        star_counts[r["rating"]] = star_counts.get(r["rating"], 0) + 1
+
+    star_breakdown = []
+    total_revs = len(reviews)
+    for star in [5, 4, 3, 2, 1]:
+        cnt = star_counts[star]
+        pct = round((cnt / total_revs * 100)) if total_revs > 0 else 0
+        star_breakdown.append({
+            "stars": star,
+            "count": cnt,
+            "percent": pct
+        })
+
     return render_template(
         "reviews.html",
         book=book,
         reviews=reviews,
         avg_rating=avg_rating,
-        review_count=review_count
+        review_count=review_count,
+        star_breakdown=star_breakdown
     )
 
 

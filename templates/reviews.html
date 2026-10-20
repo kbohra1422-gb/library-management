@@ -35,7 +35,7 @@
         <p style="color: var(--text-muted); font-size: 1rem; margin-bottom: 1rem;">by <strong>{{ book.author }}</strong></p>
 
         <!-- Average Rating Spotlight -->
-        <div style="display: flex; align-items: center; gap: 1rem;">
+        <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
           {% if avg_rating %}
           <div style="display: flex; align-items: center; gap: 0.5rem; background: var(--bg-card-subtle); border: 1px solid var(--border-color); padding: 0.4rem 0.85rem; border-radius: var(--radius-full);">
             <span style="color: #fbbf24; font-size: 1.25rem;">★</span>
@@ -45,12 +45,45 @@
           {% else %}
           <span style="color: var(--text-subtle); font-size: 0.9rem;">No reviews yet &bull; Be the first to rate!</span>
           {% endif %}
+        </div>
 
+        <!-- Star Distribution Breakdown -->
+        {% if review_count > 0 and star_breakdown %}
+        <div style="margin-top: 1.25rem; max-width: 380px; background: var(--bg-card-subtle); padding: 0.85rem 1rem; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+          <div style="font-size: 0.78rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.5rem; letter-spacing: 0.05em;">Rating Breakdown</div>
+          <div style="display: flex; flex-direction: column; gap: 0.35rem;">
+            {% for item in star_breakdown %}
+            <div style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.8rem;">
+              <span style="width: 24px; color: #fbbf24; font-weight: 700;">{{ item.stars }}★</span>
+              <div style="flex: 1; height: 8px; background: rgba(255, 255, 255, 0.08); border-radius: 999px; overflow: hidden;">
+                <div style="height: 100%; width: {{ item.percent }}%; background: linear-gradient(90deg, #f59e0b 0%, #fbbf24 100%); border-radius: 999px;"></div>
+              </div>
+              <span style="width: 32px; text-align: right; color: var(--text-subtle); font-size: 0.75rem;">{{ item.count }}</span>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+
+        <!-- Quick Book Actions -->
+        <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; margin-top: 1.25rem;">
           {% if book.pdf_url %}
-          <a href="{{ url_for('e_book_reader', book_id=book.id) }}" class="btn btn-secondary btn-sm">
+          <a href="{{ url_for('e_book_reader', book_id=book.id) }}" class="btn btn-primary btn-sm">
             <span>💻</span> Read Online
           </a>
           {% endif %}
+          {% if book.status == 'Available' %}
+          <a href="{{ url_for('borrow_page') }}" class="btn btn-secondary btn-sm">
+            <span>🔄</span> Borrow Copy
+          </a>
+          {% else %}
+          <a href="{{ url_for('reservations_page') }}" class="btn btn-secondary btn-sm">
+            <span>📌</span> Hold Title
+          </a>
+          {% endif %}
+          <a href="{{ url_for('toggle_wishlist', book_id=book.id) }}" class="btn btn-secondary btn-sm">
+            <span>🔖</span> Save to Wishlist
+          </a>
         </div>
       </div>
     </div>
