@@ -128,6 +128,9 @@ def init_db():
         cursor.execute("ALTER TABLE books ADD COLUMN pdf_url TEXT")
     if "icon" not in existing_cols:
         cursor.execute("ALTER TABLE books ADD COLUMN icon TEXT")
+    if "created_at" not in existing_cols:
+        cursor.execute("ALTER TABLE books ADD COLUMN created_at TIMESTAMP")
+    cursor.execute("UPDATE books SET created_at = CURRENT_TIMESTAMP WHERE created_at IS NULL")
 
     # Ensure all books in the catalog have tailored icons assigned
     cursor.execute("SELECT id, title, category, icon FROM books")

@@ -82,6 +82,9 @@ def init_db():
         cursor.execute("ALTER TABLE books ADD COLUMN total_copies INTEGER DEFAULT 1")
     if "available_copies" not in existing_cols:
         cursor.execute("ALTER TABLE books ADD COLUMN available_copies INTEGER DEFAULT 1")
+    if "created_at" not in existing_cols:
+        cursor.execute("ALTER TABLE books ADD COLUMN created_at TIMESTAMP")
+    cursor.execute("UPDATE books SET created_at = CURRENT_TIMESTAMP WHERE created_at IS NULL")
 
     conn.commit()
     conn.close()
@@ -622,7 +625,7 @@ Key Desktop Features:
         cat_filter = self.filter_cat_option.get().strip()
         status_filter = self.filter_status_option.get().strip()
 
-        query = "SELECT id, title, author, category, status, created_at FROM books WHERE 1=1"
+        query = "SELECT id, title, author, category, status, total_copies, available_copies, created_at FROM books WHERE 1=1"
         params = []
 
         if search_text:
@@ -647,7 +650,7 @@ Key Desktop Features:
         try:
             with open(file_path, mode="w", newline="", encoding="utf-8") as f:
                 writer = csv.writer(f)
-                writer.writerow(["ID", "Title", "Author", "Category", "Status", "Date Added"])
+                writer.writerow(["ID", "Title", "Author", "Category", "Status", "Total Copies", "Available Copies", "Date Added"])
                 for book in books:
                     writer.writerow([
                         book["id"],
@@ -655,7 +658,9 @@ Key Desktop Features:
                         book["author"],
                         book["category"],
                         book["status"],
-                        book["created_at"]
+                        book["total_copies"] if "total_copies" in book.keys() else 1,
+                        book["available_copies"] if "available_copies" in book.keys() else 1,
+                        book["created_at"] if "created_at" in book.keys() and book["created_at"] else ""
                     ])
             messagebox.showinfo("Export Successful", f"Successfully exported {len(books)} book record(s) to:\n{file_path}")
         except Exception as e:
