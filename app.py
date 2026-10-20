@@ -825,7 +825,7 @@ def export_csv():
     status_filter = request.args.get("status", "").strip()
 
     conn = get_db_connection()
-    query = "SELECT id, title, author, category, status, created_at FROM books WHERE 1=1"
+    query = "SELECT id, title, author, category, status, total_copies, available_copies FROM books WHERE 1=1"
     params = []
 
     if search_query:
@@ -848,7 +848,7 @@ def export_csv():
 
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(["ID", "Title", "Author", "Category", "Status", "Date Added"])
+    writer.writerow(["ID", "Title", "Author", "Category", "Status", "Total Copies", "Available Copies"])
 
     for book in books:
         writer.writerow([
@@ -857,7 +857,8 @@ def export_csv():
             book["author"],
             book["category"],
             book["status"],
-            book["created_at"]
+            book["total_copies"] or 1,
+            book["available_copies"] or 0
         ])
 
     output.seek(0)
@@ -892,6 +893,43 @@ def members_page():
         members=members,
         search_query=search_query,
         stats={"total": total_members, "students": students_count, "faculty": faculty_count}
+    )
+
+
+@app.route("/members/export/csv")
+@login_required
+def export_members_csv():
+    search_query = request.args.get("q", "").strip()
+    conn = get_db_connection()
+    query = "SELECT id, name, email, phone, member_type, created_at FROM members WHERE 1=1"
+    params = []
+    if search_query:
+        query += " AND (name LIKE ? OR email LIKE ? OR phone LIKE ? OR member_type LIKE ?)"
+        wildcard = f"%{search_query}%"
+        params.extend([wildcard, wildcard, wildcard, wildcard])
+    query += " ORDER BY id DESC"
+
+    members = conn.execute(query, params).fetchall()
+    conn.close()
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["Member ID", "Full Name", "Email", "Phone", "Membership Type", "Registration Date"])
+    for m in members:
+        writer.writerow([
+            m["id"],
+            m["name"],
+            m["email"] or "N/A",
+            m["phone"] or "N/A",
+            m["member_type"],
+            m["created_at"] or "N/A"
+        ])
+
+    output.seek(0)
+    return Response(
+        output.getvalue(),
+        mimetype="text/csv",
+        headers={"Content-Disposition": "attachment; filename=library_members.csv"}
     )
 
 
@@ -964,6 +1002,7 @@ def delete_member(id):
 @login_required
 def borrow_page():
     search_query = request.args.get("q", "").strip()
+    status_filter = request.args.get("status", "").strip()
     conn = get_db_connection()
     
     query = """
@@ -980,6 +1019,14 @@ def borrow_page():
         query += " AND (b.title LIKE ? OR m.name LIKE ? OR r.status LIKE ?)"
         wildcard = f"%{search_query}%"
         params.extend([wildcard, wildcard, wildcard])
+
+    if status_filter == "Issued":
+        query += " AND r.status = 'Issued'"
+    elif status_filter == "Returned":
+        query += " AND r.status = 'Returned'"
+    elif status_filter == "Overdue":
+        query += " AND r.status = 'Issued' AND date(r.due_date) < date('now')"
+
     query += " ORDER BY r.id DESC"
     
     records = conn.execute(query, params).fetchall()
@@ -1032,9 +1079,64 @@ def borrow_page():
         available_books=available_books,
         members=members,
         search_query=search_query,
+        selected_status=status_filter,
         stats=stats,
         today_date=today_str,
         default_due_date=(date.today() + timedelta(days=14)).isoformat()
+    )
+
+
+@app.route("/borrow/export/csv")
+@login_required
+def export_borrow_csv():
+    search_query = request.args.get("q", "").strip()
+    status_filter = request.args.get("status", "").strip()
+
+    conn = get_db_connection()
+    query = """
+        SELECT r.id, b.title as book_title, m.name as member_name, r.issue_date, r.due_date, r.return_date, r.status, r.fine_amount
+        FROM borrow_records r
+        JOIN books b ON r.book_id = b.id
+        JOIN members m ON r.member_id = m.id
+        WHERE 1=1
+    """
+    params = []
+    if search_query:
+        query += " AND (b.title LIKE ? OR m.name LIKE ? OR r.status LIKE ?)"
+        wildcard = f"%{search_query}%"
+        params.extend([wildcard, wildcard, wildcard])
+
+    if status_filter == "Issued":
+        query += " AND r.status = 'Issued'"
+    elif status_filter == "Returned":
+        query += " AND r.status = 'Returned'"
+    elif status_filter == "Overdue":
+        query += " AND r.status = 'Issued' AND date(r.due_date) < date('now')"
+
+    query += " ORDER BY r.id DESC"
+    records = conn.execute(query, params).fetchall()
+    conn.close()
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["Loan ID", "Book Title", "Borrower", "Issue Date", "Due Date", "Return Date", "Status", "Fine (INR)"])
+    for r in records:
+        writer.writerow([
+            r["id"],
+            r["book_title"],
+            r["member_name"],
+            r["issue_date"],
+            r["due_date"],
+            r["return_date"] or "N/A",
+            r["status"],
+            f"{r['fine_amount'] or 0.0:.2f}"
+        ])
+
+    output.seek(0)
+    return Response(
+        output.getvalue(),
+        mimetype="text/csv",
+        headers={"Content-Disposition": "attachment; filename=circulation_records.csv"}
     )
 
 

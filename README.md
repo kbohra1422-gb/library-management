@@ -15,6 +15,7 @@
 - 📊 **Visual Analytics Dashboard**: Interactive Chart.js graphs displaying category distribution, status ratios, and member demographics.
 - 📄 **Printable Receipts & QR Code Verification**: Auto-generate printable receipts with QR code authentication for issued books.
 - 📇 **Printable Digital Library Card & 3D ID Pass**: Interactive 3D flip card with QR verification, barcode generator, smart chip graphic, and wallet-sized printable layout with cut guides.
+- 📥 **Comprehensive CSV Export & Auditing**: Instant one-click CSV export across Catalog, Member Directory, and Circulation Logs with real-time status filtering (Active, Overdue, Returned).
 - 🌙 **Dark / Light Theme Sync**: Real-time theme switching with LocalStorage state persistence.
 
 ---

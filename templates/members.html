@@ -15,9 +15,14 @@
         Register, track, and manage Students, Faculty, and Staff membership profiles
       </p>
     </div>
-    <button type="button" class="btn btn-primary" onclick="openAddMemberModal()">
-      <span>➕</span> Register New Member
-    </button>
+    <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+      <a href="{{ url_for('export_members_csv', q=search_query) }}" class="btn btn-secondary" title="Export Members as CSV">
+        <span>📥</span> Export CSV
+      </a>
+      <button type="button" class="btn btn-primary" onclick="openAddMemberModal()">
+        <span>➕</span> Register New Member
+      </button>
+    </div>
   </div>
 
   <!-- Stats Grid -->

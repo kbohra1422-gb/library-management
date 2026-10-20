@@ -15,9 +15,14 @@
         Issue books with automated 14-day return period, calculate overdue late fines, and print slips
       </p>
     </div>
-    <button type="button" class="btn btn-primary" onclick="openIssueModal()">
-      <span>⚡</span> Issue Book to Member
-    </button>
+    <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+      <a href="{{ url_for('export_borrow_csv', q=search_query, status=selected_status) }}" class="btn btn-secondary" title="Export Circulation Logs as CSV">
+        <span>📥</span> Export CSV
+      </a>
+      <button type="button" class="btn btn-primary" onclick="openIssueModal()">
+        <span>⚡</span> Issue Book to Member
+      </button>
+    </div>
   </div>
 
   <!-- Circulation Stats -->
@@ -70,23 +75,43 @@
         </div>
       </div>
     </div>
-    <a href="#circulationTable" class="btn btn-danger btn-sm">
+    <a href="{{ url_for('borrow_page', status='Overdue') }}" class="btn btn-danger btn-sm">
       <span>🚨</span> View Overdue Records
     </a>
   </div>
   {% endif %}
 
-  <!-- Search Filter -->
+  <!-- Search & Quick Status Filter -->
   <div class="card" style="padding: 1.25rem; margin-bottom: 1.5rem;">
+    <!-- Status Filter Pills -->
+    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem; align-items: center;">
+      <span style="font-size: 0.82rem; font-weight: 700; color: var(--text-muted); margin-right: 0.25rem;">Quick Filter:</span>
+      <a href="{{ url_for('borrow_page', q=search_query) }}" class="btn btn-sm {% if not selected_status %}btn-primary{% else %}btn-secondary{% endif %}" style="border-radius: 999px;">
+        All Loans
+      </a>
+      <a href="{{ url_for('borrow_page', q=search_query, status='Issued') }}" class="btn btn-sm {% if selected_status == 'Issued' %}btn-primary{% else %}btn-secondary{% endif %}" style="border-radius: 999px;">
+        <span>⏳</span> Active Loans ({{ stats.issued }})
+      </a>
+      <a href="{{ url_for('borrow_page', q=search_query, status='Overdue') }}" class="btn btn-sm {% if selected_status == 'Overdue' %}btn-danger{% else %}btn-secondary{% endif %}" style="border-radius: 999px;">
+        <span>🚨</span> Overdue Only ({{ stats.overdue }})
+      </a>
+      <a href="{{ url_for('borrow_page', q=search_query, status='Returned') }}" class="btn btn-sm {% if selected_status == 'Returned' %}btn-primary{% else %}btn-secondary{% endif %}" style="border-radius: 999px;">
+        <span>✅</span> Returned History
+      </a>
+    </div>
+
     <form method="GET" action="{{ url_for('borrow_page') }}">
+      {% if selected_status %}
+      <input type="hidden" name="status" value="{{ selected_status }}">
+      {% endif %}
       <div class="toolbar" style="margin-bottom: 0;">
         <div class="search-box">
           <span class="search-icon">🔍</span>
           <input type="text" name="q" value="{{ search_query }}" class="form-control" placeholder="Search loans by book title, member name, or status...">
         </div>
         <button type="submit" class="btn btn-secondary">Search</button>
-        {% if search_query %}
-        <a href="{{ url_for('borrow_page') }}" class="btn btn-secondary">Clear</a>
+        {% if search_query or selected_status %}
+        <a href="{{ url_for('borrow_page') }}" class="btn btn-secondary">Clear Filters</a>
         {% endif %}
       </div>
     </form>
