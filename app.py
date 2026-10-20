@@ -132,6 +132,11 @@ def init_db():
         cursor.execute("ALTER TABLE books ADD COLUMN created_at TIMESTAMP")
     cursor.execute("UPDATE books SET created_at = CURRENT_TIMESTAMP WHERE created_at IS NULL")
 
+    cursor.execute("PRAGMA table_info(borrow_records)")
+    existing_borrow_cols = [row[1] for row in cursor.fetchall()]
+    if "renewal_count" not in existing_borrow_cols:
+        cursor.execute("ALTER TABLE borrow_records ADD COLUMN renewal_count INTEGER DEFAULT 0")
+
     # Ensure all books in the catalog have tailored icons assigned
     cursor.execute("SELECT id, title, category, icon FROM books")
     for b_row in cursor.fetchall():
@@ -1050,7 +1055,7 @@ def borrow_page():
     conn = get_db_connection()
     
     query = """
-        SELECT r.id, r.book_id, r.member_id, r.issue_date, r.due_date, r.return_date, r.fine_amount, r.status,
+        SELECT r.id, r.book_id, r.member_id, r.issue_date, r.due_date, r.return_date, r.fine_amount, r.status, r.renewal_count,
                b.title as book_title, b.author as book_author,
                m.name as member_name, m.email as member_email
         FROM borrow_records r
@@ -1288,6 +1293,78 @@ def return_book(id):
 
     conn.close()
     return redirect(url_for("borrow_page"))
+
+
+@app.route("/borrow/renew/<int:id>", methods=["GET", "POST"])
+@login_required
+def renew_loan(id):
+    conn = get_db_connection()
+    record = conn.execute("""
+        SELECT r.*, b.title as book_title, m.name as member_name, m.email as member_email
+        FROM borrow_records r
+        JOIN books b ON r.book_id = b.id
+        JOIN members m ON r.member_id = m.id
+        WHERE r.id = ?
+    """, (id,)).fetchone()
+
+    if not record:
+        conn.close()
+        flash("Loan circulation record not found.", "danger")
+        return redirect(request.referrer or url_for("borrow_page"))
+
+    # Permission check: admin/librarian or the loan owner
+    is_admin = session.get("role") in ["Admin", "Librarian"]
+    is_owner = (session.get("email") == record["member_email"])
+    if not (is_admin or is_owner):
+        conn.close()
+        flash("Access restricted: You are not authorized to renew this loan.", "danger")
+        return redirect(request.referrer or url_for("borrow_page"))
+
+    if record["status"] != "Issued":
+        conn.close()
+        flash(f'Cannot renew "{record["book_title"]}": This loan has already been marked as returned.', "warning")
+        return redirect(request.referrer or url_for("borrow_page"))
+
+    # Check renewal limit (maximum 2 extensions per checkout)
+    curr_renewals = record["renewal_count"] or 0
+    MAX_RENEWALS = 2
+    if curr_renewals >= MAX_RENEWALS:
+        conn.close()
+        flash(f'Cannot renew "{record["book_title"]}": Maximum renewal limit ({MAX_RENEWALS} times) has been reached for this loan.', "warning")
+        return redirect(request.referrer or url_for("borrow_page"))
+
+    # Check for hold queue conflict: If another patron placed a hold on this book, reject renewal
+    hold_waiting = conn.execute("""
+        SELECT COUNT(*) FROM reservations
+        WHERE book_id = ? AND status IN ('Pending', 'Ready') AND member_id != ?
+    """, (record["book_id"], record["member_id"])).fetchone()[0]
+
+    if hold_waiting > 0:
+        conn.close()
+        flash(f'Cannot renew "{record["book_title"]}": Another patron is currently waiting in the priority hold queue for this title.', "warning")
+        return redirect(request.referrer or url_for("borrow_page"))
+
+    # Calculate new due date (+14 days from current due date or today, whichever is later)
+    try:
+        clean_due = str(record["due_date"]).strip().split()[0].split("T")[0]
+        curr_due_date = datetime.strptime(clean_due, "%Y-%m-%d").date()
+    except (ValueError, TypeError):
+        curr_due_date = date.today()
+
+    base_date = max(date.today(), curr_due_date)
+    new_due_date = (base_date + timedelta(days=14)).isoformat()
+    new_renewal_count = curr_renewals + 1
+
+    conn.execute("""
+        UPDATE borrow_records
+        SET due_date = ?, renewal_count = ?
+        WHERE id = ?
+    """, (new_due_date, new_renewal_count, id))
+    conn.commit()
+    conn.close()
+
+    flash(f'Loan for "{record["book_title"]}" extended successfully! New return due date: {new_due_date} (Renewal {new_renewal_count}/{MAX_RENEWALS}). 📅', "success")
+    return redirect(request.referrer or url_for("borrow_page"))
 
 
 @app.route("/analytics")

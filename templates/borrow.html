@@ -185,7 +185,10 @@
                   <span>📄</span> Slip
                 </a>
                 {% if r.status == 'Issued' %}
-                <a href="{{ url_for('return_book', id=r.id) }}" class="btn btn-success btn-sm" onclick="return confirm('Confirm return for {{ r.book_title }}?')" title="Mark as Returned">
+                <a href="{{ url_for('renew_loan', id=r.id) }}" class="btn btn-secondary btn-sm" onclick="return confirm('Renew loan for {{ r.book_title|escape }} for 14 days?')" title="Extend loan due date by 14 days ({{ r.renewal_count or 0 }}/2 renewals used)">
+                  <span>⏳</span> Renew{% if r.renewal_count %} ({{ r.renewal_count }}/2){% endif %}
+                </a>
+                <a href="{{ url_for('return_book', id=r.id) }}" class="btn btn-success btn-sm" onclick="return confirm('Confirm return for {{ r.book_title|escape }}?')" title="Mark as Returned">
                   <span>📥</span> Return
                 </a>
                 {% endif %}

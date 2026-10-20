@@ -90,6 +90,11 @@ def init_db():
         cursor.execute("ALTER TABLE books ADD COLUMN created_at TIMESTAMP")
     cursor.execute("UPDATE books SET created_at = CURRENT_TIMESTAMP WHERE created_at IS NULL")
 
+    cursor.execute("PRAGMA table_info(borrow_records)")
+    existing_borrow_cols = [row[1] for row in cursor.fetchall()]
+    if "renewal_count" not in existing_borrow_cols:
+        cursor.execute("ALTER TABLE borrow_records ADD COLUMN renewal_count INTEGER DEFAULT 0")
+
     conn.commit()
     conn.close()
 

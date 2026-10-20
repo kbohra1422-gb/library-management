@@ -164,9 +164,14 @@
               </span>
             </td>
             <td>
-              <a href="{{ url_for('borrow_receipt', id=b.id) }}" class="btn btn-secondary btn-sm" target="_blank">
-                <span>📄</span> Slip
-              </a>
+              <div style="display: inline-flex; gap: 0.35rem;">
+                <a href="{{ url_for('borrow_receipt', id=b.id) }}" class="btn btn-secondary btn-sm" target="_blank" title="Print Slip">
+                  <span>📄</span> Slip
+                </a>
+                <a href="{{ url_for('renew_loan', id=b.id) }}" class="btn btn-primary btn-sm" onclick="return confirm('Renew loan for {{ b.book_title|escape }} for 14 days?')" title="Renew this loan (+14 days)">
+                  <span>⏳</span> Renew{% if b.renewal_count %} ({{ b.renewal_count }}/2){% endif %}
+                </a>
+              </div>
             </td>
           </tr>
           {% endfor %}
