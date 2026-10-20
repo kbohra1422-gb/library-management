@@ -14,6 +14,7 @@
 - 📦 **Multi-Copy Inventory Tracking**: Manage `total_copies` and `available_copies` with stock badges.
 - 📊 **Visual Analytics Dashboard**: Interactive Chart.js graphs displaying category distribution, status ratios, and member demographics.
 - 📄 **Printable Receipts & QR Code Verification**: Auto-generate printable receipts with QR code authentication for issued books.
+- 📇 **Printable Digital Library Card & 3D ID Pass**: Interactive 3D flip card with QR verification, barcode generator, smart chip graphic, and wallet-sized printable layout with cut guides.
 - 🌙 **Dark / Light Theme Sync**: Real-time theme switching with LocalStorage state persistence.
 
 ---
@@ -140,6 +141,7 @@ library_management/
     ├── analytics.html       # Chart.js visual statistics
     ├── reader.html          # In-browser E-Book PDF reader
     ├── receipt.html         # Printable QR-code loan receipt
+    ├── library_card.html    # Printable Digital Library Card & 3D Patron ID Pass
     ├── reviews.html         # Star ratings & book feedback
     ├── edit.html            # Book editor
     ├── help.html            # FAQ & User assistance

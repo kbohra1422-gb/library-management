@@ -22,6 +22,14 @@
         <div style="font-size: 0.8rem; color: var(--text-subtle); margin-top: 0.25rem;">
           Account Member Since: {{ user.created_at[:10] if user.created_at else '2026' }}
         </div>
+        <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; margin-top: 0.85rem;">
+          <a href="{{ url_for('user_library_card') }}" class="btn btn-primary btn-sm" id="btnViewDigitalCard">
+            <span>📇</span> View & Print Library Card
+          </a>
+          <button type="button" class="btn btn-secondary btn-sm" onclick="openCardPreviewModal()" id="btnCardModalPreview">
+            <span>💳</span> Quick ID Preview
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -233,4 +241,174 @@
   </div>
 
 </div>
+
+<!-- Modal: Digital Library Card Quick Preview -->
+<div class="modal-backdrop" id="cardPreviewModal" onclick="handleCardModalBackdropClick(event)">
+  <div class="modal-dialog" style="max-width: 540px;">
+    <div class="modal-header">
+      <h2 class="modal-title"><span>📇</span> Digital Patron Pass</h2>
+      <button type="button" class="modal-close" onclick="closeCardPreviewModal()" aria-label="Close modal">&times;</button>
+    </div>
+    <div style="padding: 0.5rem 0 1rem; text-align: center;">
+      <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1rem;">
+        Click the card or the flip button to view both sides.
+      </p>
+
+      <div class="card-scene" style="margin: 0 auto;">
+        <div class="library-id-card" id="modalCard" onclick="toggleModalCardFlip()" title="Click to flip">
+          <!-- FRONT FACE -->
+          <div class="card-face card-face-front">
+            <div class="card-watermark">📚</div>
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; z-index: 2;">
+              <div style="display: flex; align-items: center; gap: 0.65rem;">
+                <div style="font-size: 1.6rem;">📚</div>
+                <div style="text-align: left;">
+                  <div style="font-size: 0.95rem; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; color: #ffffff;">LibManager</div>
+                  <div style="font-size: 0.65rem; letter-spacing: 0.08em; text-transform: uppercase; color: #94a3b8; font-weight: 600;">Central University Library</div>
+                </div>
+              </div>
+              <div class="card-membership-pill">{{ card.member_type | upper }}</div>
+            </div>
+
+            <div style="display: flex; align-items: center; justify-content: space-between; z-index: 2; margin: 0.6rem 0;">
+              <div class="card-chip"></div>
+              <div style="font-size: 1.1rem; color: rgba(255, 255, 255, 0.45); font-weight: bold; transform: rotate(90deg);">(((</div>
+            </div>
+
+            <div class="card-number-embossed" style="text-align: left;">
+              {{ card.card_no }}
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: flex-end; z-index: 2; margin-top: 0.4rem;">
+              <div style="text-align: left; flex: 1; margin-right: 0.75rem;">
+                <div style="font-size: 0.6rem; text-transform: uppercase; color: #94a3b8;">Cardholder</div>
+                <div style="font-size: 1.1rem; font-weight: 800; color: #ffffff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 250px;">{{ card.name }}</div>
+                <div style="display: flex; gap: 1rem; margin-top: 0.25rem; font-size: 0.7rem; color: #cbd5e1;">
+                  <div><span style="color: #94a3b8; font-size: 0.6rem;">ISSUED:</span> <strong>{{ card.issue_date }}</strong></div>
+                  <div><span style="color: #94a3b8; font-size: 0.6rem;">EXPIRES:</span> <strong style="color: #6ee7b7;">{{ card.valid_thru }}</strong></div>
+                </div>
+              </div>
+              <div style="background: #ffffff; padding: 4px; border-radius: 6px;">
+                <img src="https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=LibManager-Card-{{ card.card_no }}-{{ card.username }}" alt="Card QR" style="width: 52px; height: 52px; display: block;">
+              </div>
+            </div>
+          </div>
+
+          <!-- BACK FACE -->
+          <div class="card-face card-face-back">
+            <div class="mag-stripe"></div>
+
+            <div style="margin-top: 40px; z-index: 2; text-align: left;">
+              <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.65rem; color: #94a3b8; margin-bottom: 0.35rem;">
+                <span>AUTHORIZED SIGNATURE</span>
+                <span style="color: #6ee7b7; font-weight: 600;">ACTIVE CREDENTIAL</span>
+              </div>
+              <div style="background: #f8fafc; color: #0f172a; height: 30px; border-radius: 4px; display: flex; align-items: center; justify-content: space-between; padding: 0 0.75rem; font-family: 'Brush Script MT', cursive, sans-serif; font-size: 1.1rem;">
+                <span>{{ card.name }}</span>
+                <span style="font-family: var(--font-mono); font-size: 0.7rem; font-weight: 700; color: #475569;">SEC-{{ "%03d"|format(card.id) }}</span>
+              </div>
+            </div>
+
+            <div style="font-size: 0.62rem; color: #94a3b8; line-height: 1.35; margin: 0.5rem 0; z-index: 2; text-align: left;">
+              Present this card for all checkouts and reservations. Non-transferable.
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; z-index: 2; margin-top: auto;">
+              <div class="card-barcode-lines">
+                <svg width="150" height="24" viewBox="0 0 180 28" xmlns="http://www.w3.org/2000/svg" style="display: block;">
+                  <rect x="0" y="0" width="3" height="28" fill="#111827"/>
+                  <rect x="5" y="0" width="1" height="28" fill="#111827"/>
+                  <rect x="8" y="0" width="4" height="28" fill="#111827"/>
+                  <rect x="14" y="0" width="2" height="28" fill="#111827"/>
+                  <rect x="18" y="0" width="1" height="28" fill="#111827"/>
+                  <rect x="21" y="0" width="3" height="28" fill="#111827"/>
+                  <rect x="26" y="0" width="2" height="28" fill="#111827"/>
+                  <rect x="30" y="0" width="5" height="28" fill="#111827"/>
+                  <rect x="37" y="0" width="1" height="28" fill="#111827"/>
+                  <rect x="40" y="0" width="3" height="28" fill="#111827"/>
+                  <rect x="45" y="0" width="2" height="28" fill="#111827"/>
+                  <rect x="49" y="0" width="4" height="28" fill="#111827"/>
+                  <rect x="55" y="0" width="1" height="28" fill="#111827"/>
+                  <rect x="58" y="0" width="2" height="28" fill="#111827"/>
+                  <rect x="62" y="0" width="3" height="28" fill="#111827"/>
+                  <rect x="67" y="0" width="1" height="28" fill="#111827"/>
+                  <rect x="70" y="0" width="4" height="28" fill="#111827"/>
+                  <rect x="76" y="0" width="2" height="28" fill="#111827"/>
+                  <rect x="80" y="0" width="3" height="28" fill="#111827"/>
+                  <rect x="85" y="0" width="1" height="28" fill="#111827"/>
+                  <rect x="88" y="0" width="4" height="28" fill="#111827"/>
+                  <rect x="94" y="0" width="2" height="28" fill="#111827"/>
+                  <rect x="98" y="0" width="3" height="28" fill="#111827"/>
+                  <rect x="103" y="0" width="1" height="28" fill="#111827"/>
+                  <rect x="106" y="0" width="5" height="28" fill="#111827"/>
+                  <rect x="113" y="0" width="2" height="28" fill="#111827"/>
+                  <rect x="117" y="0" width="1" height="28" fill="#111827"/>
+                  <rect x="120" y="0" width="3" height="28" fill="#111827"/>
+                  <rect x="125" y="0" width="4" height="28" fill="#111827"/>
+                  <rect x="131" y="0" width="1" height="28" fill="#111827"/>
+                  <rect x="134" y="0" width="3" height="28" fill="#111827"/>
+                  <rect x="139" y="0" width="2" height="28" fill="#111827"/>
+                  <rect x="143" y="0" width="4" height="28" fill="#111827"/>
+                  <rect x="149" y="0" width="1" height="28" fill="#111827"/>
+                  <rect x="152" y="0" width="3" height="28" fill="#111827"/>
+                  <rect x="157" y="0" width="2" height="28" fill="#111827"/>
+                  <rect x="161" y="0" width="5" height="28" fill="#111827"/>
+                  <rect x="168" y="0" width="2" height="28" fill="#111827"/>
+                  <rect x="172" y="0" width="3" height="28" fill="#111827"/>
+                  <rect x="177" y="0" width="3" height="28" fill="#111827"/>
+                </svg>
+                <span style="font-family: var(--font-mono); font-size: 0.6rem; color: #1e293b; font-weight: 700;">*{{ card.card_no }}*</span>
+              </div>
+              <div style="font-size: 0.65rem; color: #cbd5e1; font-weight: 600;">
+                🏛️ Verified
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display: flex; justify-content: center; gap: 0.75rem; margin-top: 1.5rem;">
+        <button type="button" class="btn btn-secondary btn-sm" onclick="toggleModalCardFlip()">
+          <span>🔄</span> Flip Card
+        </button>
+        <a href="{{ url_for('user_library_card') }}" class="btn btn-primary btn-sm" target="_blank">
+          <span>🖨️</span> Open Full & Print Pass
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function openCardPreviewModal() {
+  const m = document.getElementById('cardPreviewModal');
+  if (m) m.classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeCardPreviewModal() {
+  const m = document.getElementById('cardPreviewModal');
+  if (m) m.classList.remove('active');
+  document.body.style.overflow = '';
+}
+
+function handleCardModalBackdropClick(e) {
+  if (e.target.id === 'cardPreviewModal') {
+    closeCardPreviewModal();
+  }
+}
+
+function toggleModalCardFlip() {
+  const card = document.getElementById('modalCard');
+  if (card) {
+    card.classList.toggle('flipped');
+  }
+}
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    closeCardPreviewModal();
+  }
+});
+</script>
 {% endblock %}
