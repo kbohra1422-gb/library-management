@@ -84,7 +84,11 @@
               {% endif %}
             </td>
             <td>
-              {% if res.status == 'Pending' %}
+              {% if res.status == 'Ready' %}
+              <span class="badge badge-warning" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4);">
+                <span class="badge-dot" style="background: #fbbf24;"></span> Ready for Pickup
+              </span>
+              {% elif res.status == 'Pending' %}
               <span class="badge badge-info"><span class="badge-dot"></span> Waiting Queue</span>
               {% elif res.status == 'Fulfilled' %}
               <span class="badge badge-success"><span class="badge-dot"></span> Fulfilled</span>
@@ -93,13 +97,20 @@
               {% endif %}
             </td>
             <td style="text-align: right;">
-              {% if res.status == 'Pending' %}
-              <a href="{{ url_for('cancel_reservation', id=res.id) }}" class="btn btn-danger btn-sm" onclick="return confirm('Cancel this reservation?')" title="Cancel Hold">
-                Cancel
-              </a>
-              {% else %}
-              <span style="color: var(--text-subtle); font-size: 0.85rem;">—</span>
-              {% endif %}
+              <div style="display: inline-flex; gap: 0.35rem; justify-content: flex-end;">
+                {% if res.status in ['Pending', 'Ready'] and res.book_status == 'Available' %}
+                <a href="{{ url_for('fulfill_reservation', id=res.id) }}" class="btn btn-primary btn-sm" onclick="return confirm('Fulfill reservation and issue {{ res.book_title|escape }} to {{ res.member_name|escape }}?')" title="Issue to reserving patron">
+                  <span>⚡</span> Fulfill & Issue
+                </a>
+                {% endif %}
+                {% if res.status in ['Pending', 'Ready'] %}
+                <a href="{{ url_for('cancel_reservation', id=res.id) }}" class="btn btn-secondary btn-sm" onclick="return confirm('Cancel this reservation?')" title="Cancel Hold">
+                  Cancel
+                </a>
+                {% else %}
+                <span style="color: var(--text-subtle); font-size: 0.85rem;">—</span>
+                {% endif %}
+              </div>
             </td>
           </tr>
           {% endfor %}

@@ -1335,16 +1335,88 @@ def create_reservation():
 
     if book_id and member_id:
         conn = get_db_connection()
+        book = conn.execute("SELECT * FROM books WHERE id = ?", (book_id,)).fetchone()
+        member = conn.execute("SELECT * FROM members WHERE id = ?", (member_id,)).fetchone()
+
+        if not book or not member:
+            conn.close()
+            flash("Invalid book or member selection.", "danger")
+            return redirect(url_for("reservations_page"))
+
+        # Check if copies are currently available on shelf
+        if book["status"] == "Available" and (book["available_copies"] is None or book["available_copies"] > 0):
+            conn.close()
+            flash(f'"{book["title"]}" has copies available in stock! You can issue it directly at the Circulation Desk.', "info")
+            return redirect(url_for("reservations_page"))
+
+        # Check for existing active reservation for same member and book
+        existing = conn.execute(
+            "SELECT id FROM reservations WHERE book_id = ? AND member_id = ? AND status IN ('Pending', 'Ready')",
+            (book_id, member_id)
+        ).fetchone()
+
+        if existing:
+            conn.close()
+            flash(f'{member["name"]} already has an active hold reservation for "{book["title"]}".', "warning")
+            return redirect(url_for("reservations_page"))
+
         conn.execute(
             "INSERT INTO reservations (book_id, member_id, status) VALUES (?, ?, 'Pending')",
             (book_id, member_id)
         )
         conn.commit()
         conn.close()
-        flash("Reservation request placed successfully!", "success")
+        flash(f'Hold request placed for "{book["title"]}" by {member["name"]}.', "success")
     else:
         flash("Please select both a book and a member.", "danger")
 
+    return redirect(url_for("reservations_page"))
+
+
+@app.route("/reservations/fulfill/<int:id>")
+@login_required
+def fulfill_reservation(id):
+    conn = get_db_connection()
+    res = conn.execute("SELECT * FROM reservations WHERE id = ?", (id,)).fetchone()
+    if not res or res["status"] not in ["Pending", "Ready"]:
+        conn.close()
+        flash("Hold reservation is not active or already processed.", "warning")
+        return redirect(url_for("reservations_page"))
+
+    book = conn.execute("SELECT * FROM books WHERE id = ?", (res["book_id"],)).fetchone()
+    member = conn.execute("SELECT * FROM members WHERE id = ?", (res["member_id"],)).fetchone()
+
+    if not book or not member:
+        conn.close()
+        flash("Associated book or member record not found.", "danger")
+        return redirect(url_for("reservations_page"))
+
+    avail = book["available_copies"] if book["available_copies"] is not None else 1
+    if avail <= 0 and book["status"] == "Borrowed":
+        conn.close()
+        flash(f'Cannot fulfill reservation: "{book["title"]}" has no available physical copies returned yet.', "warning")
+        return redirect(url_for("reservations_page"))
+
+    due_date = (date.today() + timedelta(days=14)).isoformat()
+    new_avail = max(0, avail - 1)
+    new_status = "Available" if new_avail > 0 else "Borrowed"
+
+    conn.execute(
+        """
+        INSERT INTO borrow_records (book_id, member_id, issue_date, due_date, status)
+        VALUES (?, ?, date('now'), ?, 'Issued')
+        """,
+        (res["book_id"], res["member_id"], due_date)
+    )
+    conn.execute(
+        "UPDATE books SET available_copies = ?, status = ? WHERE id = ?",
+        (new_avail, new_status, res["book_id"])
+    )
+    conn.execute("UPDATE reservations SET status = 'Fulfilled' WHERE id = ?", (id,))
+    conn.commit()
+    conn.close()
+
+    flash(f'Reservation #{id} fulfilled! Book "{book["title"]}" has been issued to {member["name"]}.', "success")
     return redirect(url_for("reservations_page"))
 
 
