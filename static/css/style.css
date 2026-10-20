@@ -1304,12 +1304,194 @@ body {
   border-top: 2px dashed #e2e8f0;
 }
 
+/* ==========================================================================
+   Digital Library Card & Patron ID Pass Styles
+   ========================================================================== */
+.card-scene {
+  perspective: 1000px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 1rem 0;
+}
+
+.library-id-card {
+  width: 100%;
+  max-width: 480px;
+  height: 290px;
+  position: relative;
+  border-radius: 18px;
+  transition: transform 0.75s cubic-bezier(0.19, 1, 0.22, 1);
+  transform-style: preserve-3d;
+  cursor: pointer;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+
+.library-id-card.flipped {
+  transform: rotateY(180deg);
+}
+
+.card-face {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 18px;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.card-face-front {
+  background: linear-gradient(135deg, #090e1a 0%, #172033 55%, #1e293b 100%);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: #ffffff;
+}
+
+.card-face-front::before {
+  content: '';
+  position: absolute;
+  top: -40%;
+  right: -30%;
+  width: 90%;
+  height: 90%;
+  background: radial-gradient(circle, rgba(99, 102, 241, 0.28) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.card-face-front::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #6366f1 0%, #3b82f6 50%, #10b981 100%);
+}
+
+.card-face-back {
+  background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 60%, #111827 100%);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #e2e8f0;
+  transform: rotateY(180deg);
+  padding: 1.25rem 1.5rem;
+}
+
+.card-watermark {
+  position: absolute;
+  right: -25px;
+  bottom: -35px;
+  font-size: 170px;
+  opacity: 0.04;
+  pointer-events: none;
+  user-select: none;
+}
+
+.card-membership-pill {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  background: rgba(99, 102, 241, 0.2);
+  color: #a5b4fc;
+  border: 1px solid rgba(165, 180, 252, 0.3);
+  padding: 0.25rem 0.65rem;
+  border-radius: 9999px;
+  text-transform: uppercase;
+}
+
+.card-chip {
+  width: 44px;
+  height: 32px;
+  background: linear-gradient(135deg, #fcd34d 0%, #d97706 60%, #92400e 100%);
+  border-radius: 6px;
+  position: relative;
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.5), 0 2px 4px rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.card-chip::after {
+  content: '';
+  width: 72%;
+  height: 68%;
+  border: 1px solid rgba(0, 0, 0, 0.35);
+  border-radius: 3px;
+}
+
+.card-number-embossed {
+  font-family: var(--font-mono);
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  color: #f8fafc;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9), 0 -1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.card-barcode-lines {
+  background: #ffffff;
+  padding: 5px 10px;
+  border-radius: 6px;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.25);
+}
+
+.mag-stripe {
+  position: absolute;
+  top: 20px;
+  left: 0;
+  right: 0;
+  height: 38px;
+  background: linear-gradient(180deg, #111827 0%, #000000 50%, #111827 100%);
+}
+
+.print-only-sheet {
+  display: none;
+}
+
+.print-cut-guide {
+  border: 2px dashed #94a3b8;
+  border-radius: 12px;
+  padding: 24px;
+  background: #f8fafc;
+  position: relative;
+  margin: 1.5rem auto;
+}
+
+.cut-guide-label {
+  text-align: center;
+  font-size: 0.78rem;
+  color: #64748b;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  letter-spacing: 0.05em;
+}
+
+.print-card-unit {
+  width: 380px !important;
+  height: 235px !important;
+  position: relative !important;
+  transform: none !important;
+  backface-visibility: visible !important;
+  border-radius: 14px !important;
+  margin: 0 auto;
+}
+
 @media print {
   body {
     background: #fff !important;
     color: #000 !important;
   }
-  .navbar, .btn, .no-print {
+  .navbar, .btn, .no-print, .alerts-container, .footer {
     display: none !important;
   }
   .receipt-container {
@@ -1318,6 +1500,21 @@ body {
     margin: 0;
     padding: 0;
     max-width: 100%;
+  }
+  .print-page-wrapper {
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: 100% !important;
+  }
+  .print-only-sheet {
+    display: block !important;
+  }
+  .print-card-unit {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    box-shadow: none !important;
+    border: 1px solid #475569 !important;
+    page-break-inside: avoid !important;
   }
 }
 
