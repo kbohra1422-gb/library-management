@@ -213,7 +213,7 @@
         <select name="book_id" id="issueBookSelect" class="form-select" required>
           <option value="">-- Choose a title from available stock --</option>
           {% for b in available_books %}
-          <option value="{{ b.id }}">{{ get_book_icon(b.title, b.author) }} {{ b.title }} (by {{ b.author }})</option>
+          <option value="{{ b.id }}">{{ get_book_icon(b.title, b.author) }} {{ b.title }} (by {{ b.author }}) &bull; {{ b.available_copies or 1 }} in stock</option>
           {% endfor %}
         </select>
       </div>

@@ -1062,7 +1062,7 @@ def borrow_page():
             calculated_total_fines += r_dict["calculated_fine"]
         enriched_records.append(r_dict)
 
-    available_books = conn.execute("SELECT id, title, author FROM books WHERE status = 'Available'").fetchall()
+    available_books = conn.execute("SELECT id, title, author, available_copies, total_copies FROM books WHERE status = 'Available' AND (available_copies IS NULL OR available_copies > 0) ORDER BY title").fetchall()
     members = conn.execute("SELECT id, name, member_type FROM members ORDER BY name").fetchall()
     
     issued_count = conn.execute("SELECT COUNT(*) FROM borrow_records WHERE status = 'Issued'").fetchone()[0]
@@ -1159,6 +1159,16 @@ def issue_book():
         member = conn.execute("SELECT * FROM members WHERE id = ?", (member_id,)).fetchone()
 
         if book and member:
+            avail = book["available_copies"] if book["available_copies"] is not None else 1
+            total_c = book["total_copies"] or 1
+            if avail <= 0:
+                conn.close()
+                flash(f'Cannot issue "{book["title"]}": All {total_c} copies are currently on loan.', "warning")
+                return redirect(url_for("borrow_page"))
+
+            new_avail = max(0, avail - 1)
+            new_status = "Available" if new_avail > 0 else "Borrowed"
+
             conn.execute(
                 """
                 INSERT INTO borrow_records (book_id, member_id, issue_date, due_date, status)
@@ -1166,9 +1176,12 @@ def issue_book():
                 """,
                 (book_id, member_id, due_date)
             )
-            conn.execute("UPDATE books SET status = 'Borrowed' WHERE id = ?", (book_id,))
+            conn.execute(
+                "UPDATE books SET available_copies = ?, status = ? WHERE id = ?",
+                (new_avail, new_status, book_id)
+            )
             conn.commit()
-            flash(f'Book "{book["title"]}" issued to {member["name"]} successfully!', "success")
+            flash(f'Book "{book["title"]}" issued to {member["name"]} successfully! ({new_avail} of {total_c} copies remaining in stock)', "success")
         else:
             flash("Invalid book or member selection.", "danger")
         conn.close()
@@ -1192,6 +1205,11 @@ def return_book(id):
             overdue_days = (today_dt - due_dt).days
             fine = overdue_days * 5.0
 
+        book = conn.execute("SELECT * FROM books WHERE id = ?", (record["book_id"],)).fetchone()
+        total_c = (book["total_copies"] if book and book["total_copies"] else 1)
+        curr_avail = (book["available_copies"] if book and book["available_copies"] is not None else 0)
+        new_avail = min(total_c, curr_avail + 1)
+
         conn.execute(
             """
             UPDATE borrow_records
@@ -1200,12 +1218,30 @@ def return_book(id):
             """,
             (fine, id)
         )
-        conn.execute("UPDATE books SET status = 'Available' WHERE id = ?", (record["book_id"],))
+        conn.execute(
+            "UPDATE books SET available_copies = ?, status = 'Available' WHERE id = ?",
+            (new_avail, record["book_id"])
+        )
+
+        # Check if there is an active reservation waiting for this book
+        pending_res = conn.execute("""
+            SELECT res.id, m.name as member_name
+            FROM reservations res
+            JOIN members m ON res.member_id = m.id
+            WHERE res.book_id = ? AND res.status = 'Pending'
+            ORDER BY res.id ASC LIMIT 1
+        """, (record["book_id"],)).fetchone()
+
+        hold_notif = ""
+        if pending_res:
+            conn.execute("UPDATE reservations SET status = 'Ready' WHERE id = ?", (pending_res["id"],))
+            hold_notif = f" Priority hold for patron {pending_res['member_name']} is now Ready for Pickup!"
+
         conn.commit()
         if fine > 0:
-            flash(f"Book returned! Late fine calculated: ₹{fine:.2f}", "warning")
+            flash(f"Book returned! Late fine calculated: ₹{fine:.2f}.{hold_notif}", "warning")
         else:
-            flash("Book returned on time! No fine incurred.", "success")
+            flash(f"Book returned on time! Stock updated to {new_avail} of {total_c} copies.{hold_notif}", "success")
     else:
         flash("Record not found or already returned.", "danger")
 
