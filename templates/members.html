@@ -118,6 +118,9 @@
             </td>
             <td style="text-align: right;">
               <div style="display: inline-flex; gap: 0.35rem;">
+                <a href="{{ url_for('member_library_card', id=m.id) }}" class="btn btn-secondary btn-sm" target="_blank" title="View & Print Official Library ID Card">
+                  📇
+                </a>
                 <button type="button" class="btn btn-secondary btn-sm" onclick="openEditMemberModal('{{ m.id }}', '{{ m.name|escape }}', '{{ m.email or '' }}', '{{ m.phone or '' }}', '{{ m.member_type }}')" title="Edit Member">
                   ✏️
                 </button>

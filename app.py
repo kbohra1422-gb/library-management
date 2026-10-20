@@ -1445,7 +1445,8 @@ def profile_page():
 
     # Find borrowing records for this user (if member exists with same email)
     borrows = []
-    member_row = conn.execute("SELECT id FROM members WHERE email = ?", (user["email"],)).fetchone()
+    member_row = conn.execute("SELECT * FROM members WHERE email = ?", (user["email"],)).fetchone()
+    active_borrows = 0
     if member_row:
         borrows = conn.execute("""
             SELECT br.*, b.title as book_title
@@ -1454,6 +1455,9 @@ def profile_page():
             WHERE br.member_id = ?
             ORDER BY br.id DESC
         """, (member_row["id"],)).fetchall()
+        for b in borrows:
+            if b["status"] == "Issued":
+                active_borrows += 1
 
     # Find Want to Read books for this user
     wishlist_books = conn.execute("""
@@ -1464,6 +1468,22 @@ def profile_page():
         ORDER BY w.id DESC
     """, (session["user_id"],)).fetchall()
 
+    card_data = {
+        "id": user["id"],
+        "name": user["full_name"] or user["username"],
+        "username": user["username"],
+        "email": user["email"],
+        "phone": (member_row["phone"] if member_row and member_row["phone"] else "Not Provided"),
+        "role": user["role"],
+        "member_type": (member_row["member_type"] if member_row and member_row["member_type"] else ("Faculty Fellow" if user["role"] == "Admin" else "Student Scholar")),
+        "card_no": f"LM-2026-{user['id']:04d}",
+        "issue_date": user["created_at"][:10] if user["created_at"] else "2026-01-01",
+        "valid_thru": "2028-12-31",
+        "active_borrows": active_borrows,
+        "max_borrows": 15 if user["role"] == "Admin" else 5,
+        "is_owner": True
+    }
+
     conn.close()
 
     return render_template(
@@ -1471,8 +1491,82 @@ def profile_page():
         user=user,
         borrows=borrows,
         wishlist_books=wishlist_books,
+        card=card_data,
         active_page="profile"
     )
+
+
+@app.route("/profile/card")
+@login_required
+def user_library_card():
+    conn = get_db_connection()
+    user = conn.execute("SELECT * FROM users WHERE id = ?", (session["user_id"],)).fetchone()
+    if not user:
+        conn.close()
+        flash("User session expired. Please log in again.", "warning")
+        return redirect(url_for("login_page"))
+
+    member = conn.execute("SELECT * FROM members WHERE email = ?", (user["email"],)).fetchone()
+    active_borrows = 0
+    if member:
+        active_borrows = conn.execute(
+            "SELECT COUNT(*) FROM borrow_records WHERE member_id = ? AND status = 'Issued'",
+            (member["id"],)
+        ).fetchone()[0]
+
+    conn.close()
+
+    card_data = {
+        "id": user["id"],
+        "name": user["full_name"] or user["username"],
+        "username": user["username"],
+        "email": user["email"],
+        "phone": (member["phone"] if member and member["phone"] else "Not Provided"),
+        "role": user["role"],
+        "member_type": (member["member_type"] if member and member["member_type"] else ("Faculty Fellow" if user["role"] == "Admin" else "Student Scholar")),
+        "card_no": f"LM-2026-{user['id']:04d}",
+        "issue_date": user["created_at"][:10] if user["created_at"] else "2026-01-01",
+        "valid_thru": "2028-12-31",
+        "active_borrows": active_borrows,
+        "max_borrows": 15 if user["role"] == "Admin" else 5,
+        "is_owner": True
+    }
+    return render_template("library_card.html", card=card_data, active_page="profile")
+
+
+@app.route("/members/card/<int:id>")
+@login_required
+def member_library_card(id):
+    conn = get_db_connection()
+    member = conn.execute("SELECT * FROM members WHERE id = ?", (id,)).fetchone()
+    if not member:
+        conn.close()
+        flash("Member record not found.", "danger")
+        return redirect(url_for("members_page"))
+
+    active_borrows = conn.execute(
+        "SELECT COUNT(*) FROM borrow_records WHERE member_id = ? AND status = 'Issued'",
+        (id,)
+    ).fetchone()[0]
+    conn.close()
+
+    card_data = {
+        "id": member["id"],
+        "name": member["name"],
+        "username": (member["email"].split("@")[0] if member["email"] else f"patron{member['id']}"),
+        "email": member["email"] or "N/A",
+        "phone": member["phone"] or "Not Provided",
+        "role": member["member_type"],
+        "member_type": member["member_type"],
+        "card_no": f"LM-2026-{member['id']:04d}",
+        "issue_date": member["created_at"][:10] if member["created_at"] else "2026-01-01",
+        "valid_thru": "2028-12-31",
+        "active_borrows": active_borrows,
+        "max_borrows": 10 if member["member_type"] == "Faculty" else 5,
+        "is_owner": (session.get("email") == member["email"])
+    }
+    return render_template("library_card.html", card=card_data, active_page="members")
+
 
 
 @app.route("/help")

@@ -1,0 +1,344 @@
+{% extends "base.html" %}
+
+{% block title %}Digital Library Card - {{ card.name }}{% endblock %}
+
+{% block content %}
+<div class="container print-page-wrapper" style="padding-top: 2rem; padding-bottom: 3.5rem; max-width: 900px;">
+
+  <!-- Screen Navigation & Action Bar -->
+  <div class="no-print" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 2rem;">
+    <div>
+      {% if active_page == 'members' %}
+      <a href="{{ url_for('members_page') }}" class="btn btn-secondary btn-sm">
+        &larr; Back to Member Directory
+      </a>
+      {% else %}
+      <a href="{{ url_for('profile_page') }}" class="btn btn-secondary btn-sm">
+        &larr; Back to Patron Profile
+      </a>
+      {% endif %}
+    </div>
+
+    <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
+      <button type="button" class="btn btn-secondary btn-sm" onclick="toggleCardFlip()" id="btnFlipCard">
+        <span>🔄</span> Flip Card (3D)
+      </button>
+      <button type="button" class="btn btn-primary" onclick="window.print()" id="btnPrintCard">
+        <span>🖨️</span> Print Official Card
+      </button>
+    </div>
+  </div>
+
+  <!-- Instruction Banner on Screen -->
+  <div class="no-print card" style="background: linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(59, 130, 246, 0.05) 100%); border-left: 4px solid var(--primary-500); padding: 1.25rem 1.5rem; margin-bottom: 2rem;">
+    <div style="display: flex; gap: 1rem; align-items: center;">
+      <div style="font-size: 2rem;">📇</div>
+      <div style="flex: 1;">
+        <h2 style="font-size: 1.15rem; font-weight: 700; margin-bottom: 0.25rem;">Official Digital Patron Credential</h2>
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin: 0;">
+          Click the card or use <strong>"Flip Card"</strong> to inspect both the front and back. Click <strong>"Print Official Card"</strong> to produce a wallet-sized ID pass with cutting guidelines.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Interactive 3D Card Display on Screen -->
+  <div class="no-print card-scene">
+    <div class="library-id-card" id="interactiveCard" onclick="toggleCardFlip()" title="Click to flip card">
+
+      <!-- FRONT FACE -->
+      <div class="card-face card-face-front">
+        <div class="card-watermark">📚</div>
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; z-index: 2;">
+          <div style="display: flex; align-items: center; gap: 0.65rem;">
+            <div style="font-size: 1.8rem; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));">📚</div>
+            <div>
+              <div style="font-size: 1rem; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; color: #ffffff;">LibManager</div>
+              <div style="font-size: 0.68rem; letter-spacing: 0.08em; text-transform: uppercase; color: #94a3b8; font-weight: 600;">Central University Library</div>
+            </div>
+          </div>
+          <div class="card-membership-pill">
+            {{ card.member_type | upper }}
+          </div>
+        </div>
+
+        <!-- Middle Row: Smart Chip & Wireless Wave -->
+        <div style="display: flex; align-items: center; justify-content: space-between; z-index: 2; margin: 0.75rem 0;">
+          <div class="card-chip"></div>
+          <div style="font-size: 1.2rem; color: rgba(255, 255, 255, 0.45); font-weight: bold; transform: rotate(90deg);" title="Contactless Smart Card">
+            (((
+          </div>
+        </div>
+
+        <!-- Card Number Display -->
+        <div style="z-index: 2;">
+          <div class="card-number-embossed">
+            {{ card.card_no }}
+          </div>
+        </div>
+
+        <!-- Bottom Row: Patron Details & QR Code -->
+        <div style="display: flex; justify-content: space-between; align-items: flex-end; z-index: 2; margin-top: 0.5rem;">
+          <div style="flex: 1; margin-right: 1rem;">
+            <div style="font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.06em; color: #94a3b8; margin-bottom: 2px;">Cardholder Name</div>
+            <div style="font-size: 1.15rem; font-weight: 800; color: #ffffff; letter-spacing: 0.02em; text-shadow: 0 1px 2px rgba(0,0,0,0.6); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 260px;">
+              {{ card.name }}
+            </div>
+            <div style="display: flex; gap: 1.25rem; margin-top: 0.4rem; font-size: 0.75rem; color: #cbd5e1;">
+              <div>
+                <span style="color: #94a3b8; font-size: 0.65rem; display: block; text-transform: uppercase;">Issued</span>
+                <strong>{{ card.issue_date }}</strong>
+              </div>
+              <div>
+                <span style="color: #94a3b8; font-size: 0.65rem; display: block; text-transform: uppercase;">Valid Thru</span>
+                <strong style="color: #6ee7b7;">{{ card.valid_thru }}</strong>
+              </div>
+            </div>
+          </div>
+
+          <!-- Front Micro QR -->
+          <div style="background: #ffffff; padding: 5px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center;">
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=LibManager-Card-{{ card.card_no }}-{{ card.username }}" alt="Card QR Code" style="width: 58px; height: 58px; display: block;">
+          </div>
+        </div>
+      </div>
+
+      <!-- BACK FACE -->
+      <div class="card-face card-face-back">
+        <div class="mag-stripe"></div>
+
+        <div style="margin-top: 42px; z-index: 2;">
+          <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.7rem; color: #94a3b8; margin-bottom: 0.4rem;">
+            <span>AUTHORIZED SIGNATURE / PATRON VERIFICATION</span>
+            <span style="color: #6ee7b7; font-weight: 600;">ACTIVE CREDENTIAL</span>
+          </div>
+          <!-- White signature strip -->
+          <div style="background: #f8fafc; color: #0f172a; height: 32px; border-radius: 4px; display: flex; align-items: center; justify-content: space-between; padding: 0 0.75rem; font-family: 'Brush Script MT', cursive, sans-serif; font-size: 1.15rem; box-shadow: inset 0 1px 3px rgba(0,0,0,0.15);">
+            <span>{{ card.name }}</span>
+            <span style="font-family: var(--font-mono); font-size: 0.75rem; font-weight: 700; color: #475569; letter-spacing: 0.05em;">SEC-{{ "%03d"|format(card.id) }}</span>
+          </div>
+        </div>
+
+        <!-- Terms of Service & Policy -->
+        <div style="font-size: 0.65rem; color: #94a3b8; line-height: 1.4; margin: 0.6rem 0; z-index: 2;">
+          This card is non-transferable and remains the property of LibManager Library. Present this card for all checkouts, inter-library requests, and digital resource reservations. Report lost or stolen cards immediately.
+        </div>
+
+        <!-- Barcode Graphic with Monospace Code -->
+        <div style="display: flex; justify-content: space-between; align-items: center; z-index: 2; margin-top: auto;">
+          <div class="card-barcode-lines">
+            <svg width="180" height="28" viewBox="0 0 180 28" xmlns="http://www.w3.org/2000/svg" style="display: block;">
+              <!-- Authentic looking barcode SVG pattern -->
+              <rect x="0" y="0" width="3" height="28" fill="#111827"/>
+              <rect x="5" y="0" width="1" height="28" fill="#111827"/>
+              <rect x="8" y="0" width="4" height="28" fill="#111827"/>
+              <rect x="14" y="0" width="2" height="28" fill="#111827"/>
+              <rect x="18" y="0" width="1" height="28" fill="#111827"/>
+              <rect x="21" y="0" width="3" height="28" fill="#111827"/>
+              <rect x="26" y="0" width="2" height="28" fill="#111827"/>
+              <rect x="30" y="0" width="5" height="28" fill="#111827"/>
+              <rect x="37" y="0" width="1" height="28" fill="#111827"/>
+              <rect x="40" y="0" width="3" height="28" fill="#111827"/>
+              <rect x="45" y="0" width="2" height="28" fill="#111827"/>
+              <rect x="49" y="0" width="4" height="28" fill="#111827"/>
+              <rect x="55" y="0" width="1" height="28" fill="#111827"/>
+              <rect x="58" y="0" width="2" height="28" fill="#111827"/>
+              <rect x="62" y="0" width="3" height="28" fill="#111827"/>
+              <rect x="67" y="0" width="1" height="28" fill="#111827"/>
+              <rect x="70" y="0" width="4" height="28" fill="#111827"/>
+              <rect x="76" y="0" width="2" height="28" fill="#111827"/>
+              <rect x="80" y="0" width="3" height="28" fill="#111827"/>
+              <rect x="85" y="0" width="1" height="28" fill="#111827"/>
+              <rect x="88" y="0" width="4" height="28" fill="#111827"/>
+              <rect x="94" y="0" width="2" height="28" fill="#111827"/>
+              <rect x="98" y="0" width="3" height="28" fill="#111827"/>
+              <rect x="103" y="0" width="1" height="28" fill="#111827"/>
+              <rect x="106" y="0" width="5" height="28" fill="#111827"/>
+              <rect x="113" y="0" width="2" height="28" fill="#111827"/>
+              <rect x="117" y="0" width="1" height="28" fill="#111827"/>
+              <rect x="120" y="0" width="3" height="28" fill="#111827"/>
+              <rect x="125" y="0" width="4" height="28" fill="#111827"/>
+              <rect x="131" y="0" width="1" height="28" fill="#111827"/>
+              <rect x="134" y="0" width="3" height="28" fill="#111827"/>
+              <rect x="139" y="0" width="2" height="28" fill="#111827"/>
+              <rect x="143" y="0" width="4" height="28" fill="#111827"/>
+              <rect x="149" y="0" width="1" height="28" fill="#111827"/>
+              <rect x="152" y="0" width="3" height="28" fill="#111827"/>
+              <rect x="157" y="0" width="2" height="28" fill="#111827"/>
+              <rect x="161" y="0" width="5" height="28" fill="#111827"/>
+              <rect x="168" y="0" width="2" height="28" fill="#111827"/>
+              <rect x="172" y="0" width="3" height="28" fill="#111827"/>
+              <rect x="177" y="0" width="3" height="28" fill="#111827"/>
+            </svg>
+            <span style="font-family: var(--font-mono); font-size: 0.68rem; color: #1e293b; letter-spacing: 0.15em; font-weight: 700;">*{{ card.card_no }}*</span>
+          </div>
+
+          <div style="text-align: right;">
+            <div style="font-size: 0.62rem; color: #94a3b8; text-transform: uppercase;">Desk Help</div>
+            <div style="font-size: 0.72rem; font-weight: 700; color: #f1f5f9;">lib.support@univ.edu</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Patron Summary Data Card (On Screen) -->
+  <div class="no-print card" style="margin-top: 2rem;">
+    <div class="card-header">
+      <h3 class="card-title" style="font-size: 1.1rem;"><span>ℹ️</span> Patron Membership Specifications</h3>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+      <div style="background: var(--bg-card-subtle); padding: 1rem; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+        <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 600;">Full Name</div>
+        <div style="font-size: 1.05rem; font-weight: 700; margin-top: 0.25rem;">{{ card.name }}</div>
+      </div>
+      <div style="background: var(--bg-card-subtle); padding: 1rem; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+        <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 600;">Membership Tier</div>
+        <div style="font-size: 1.05rem; font-weight: 700; margin-top: 0.25rem; color: var(--primary-400);">{{ card.member_type }}</div>
+      </div>
+      <div style="background: var(--bg-card-subtle); padding: 1rem; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+        <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 600;">Loan Privileges</div>
+        <div style="font-size: 1.05rem; font-weight: 700; margin-top: 0.25rem;">Max {{ card.max_borrows }} Books Concurrent</div>
+      </div>
+      <div style="background: var(--bg-card-subtle); padding: 1rem; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+        <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 600;">Active Checkouts</div>
+        <div style="font-size: 1.05rem; font-weight: 700; margin-top: 0.25rem; color: var(--status-warning);">{{ card.active_borrows }} Active</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PRINT-ONLY DUAL WALLET CARD SHEET WITH CUT GUIDES -->
+  <div class="print-only-sheet">
+    <div style="text-align: center; margin-bottom: 1.5rem;">
+      <h2 style="font-size: 1.3rem; font-weight: 800; color: #0f172a; margin-bottom: 0.25rem;">LibManager Enterprise Library</h2>
+      <p style="font-size: 0.85rem; color: #475569; margin: 0;">Official Patron Membership Card & Wallet ID</p>
+    </div>
+
+    <div class="print-cut-guide">
+      <div class="cut-guide-label">✂ Cut along the dotted line & fold along center</div>
+      
+      <div style="display: flex; gap: 20px; justify-content: center; align-items: stretch; flex-wrap: wrap;">
+        <!-- Front Side for Print -->
+        <div class="card-face card-face-front print-card-unit">
+          <div class="card-watermark">📚</div>
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; z-index: 2;">
+            <div style="display: flex; align-items: center; gap: 0.65rem;">
+              <div style="font-size: 1.6rem;">📚</div>
+              <div>
+                <div style="font-size: 0.95rem; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; color: #ffffff;">LibManager</div>
+                <div style="font-size: 0.65rem; letter-spacing: 0.08em; text-transform: uppercase; color: #94a3b8; font-weight: 600;">Central University Library</div>
+              </div>
+            </div>
+            <div class="card-membership-pill">{{ card.member_type | upper }}</div>
+          </div>
+
+          <div style="display: flex; align-items: center; justify-content: space-between; z-index: 2; margin: 0.6rem 0;">
+            <div class="card-chip"></div>
+            <div style="font-size: 1.1rem; color: rgba(255, 255, 255, 0.45); font-weight: bold; transform: rotate(90deg);">(((</div>
+          </div>
+
+          <div class="card-number-embossed" style="font-size: 1.25rem;">
+            {{ card.card_no }}
+          </div>
+
+          <div style="display: flex; justify-content: space-between; align-items: flex-end; z-index: 2; margin-top: 0.4rem;">
+            <div style="flex: 1; margin-right: 0.75rem;">
+              <div style="font-size: 0.6rem; text-transform: uppercase; color: #94a3b8;">Cardholder Name</div>
+              <div style="font-size: 1.05rem; font-weight: 800; color: #ffffff;">{{ card.name }}</div>
+              <div style="display: flex; gap: 1rem; margin-top: 0.25rem; font-size: 0.7rem; color: #cbd5e1;">
+                <div><span style="color: #94a3b8; font-size: 0.6rem;">ISSUED:</span> <strong>{{ card.issue_date }}</strong></div>
+                <div><span style="color: #94a3b8; font-size: 0.6rem;">EXPIRES:</span> <strong>{{ card.valid_thru }}</strong></div>
+              </div>
+            </div>
+            <div style="background: #ffffff; padding: 4px; border-radius: 6px;">
+              <img src="https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=LibManager-Card-{{ card.card_no }}-{{ card.username }}" alt="Card QR" style="width: 52px; height: 52px; display: block;">
+            </div>
+          </div>
+        </div>
+
+        <!-- Back Side for Print -->
+        <div class="card-face card-face-back print-card-unit">
+          <div class="mag-stripe"></div>
+
+          <div style="margin-top: 40px; z-index: 2;">
+            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.65rem; color: #94a3b8; margin-bottom: 0.35rem;">
+              <span>AUTHORIZED SIGNATURE / PATRON VERIFICATION</span>
+              <span style="color: #6ee7b7; font-weight: 600;">ACTIVE CREDENTIAL</span>
+            </div>
+            <div style="background: #f8fafc; color: #0f172a; height: 30px; border-radius: 4px; display: flex; align-items: center; justify-content: space-between; padding: 0 0.75rem; font-family: 'Brush Script MT', cursive, sans-serif; font-size: 1.1rem;">
+              <span>{{ card.name }}</span>
+              <span style="font-family: var(--font-mono); font-size: 0.7rem; font-weight: 700; color: #475569;">SEC-{{ "%03d"|format(card.id) }}</span>
+            </div>
+          </div>
+
+          <div style="font-size: 0.6rem; color: #94a3b8; line-height: 1.35; margin: 0.5rem 0; z-index: 2;">
+            This card is non-transferable and remains the property of LibManager Library. Present this card for all checkouts and reservations.
+          </div>
+
+          <div style="display: flex; justify-content: space-between; align-items: center; z-index: 2; margin-top: auto;">
+            <div class="card-barcode-lines">
+              <svg width="160" height="24" viewBox="0 0 180 28" xmlns="http://www.w3.org/2000/svg" style="display: block;">
+                <rect x="0" y="0" width="3" height="28" fill="#111827"/>
+                <rect x="5" y="0" width="1" height="28" fill="#111827"/>
+                <rect x="8" y="0" width="4" height="28" fill="#111827"/>
+                <rect x="14" y="0" width="2" height="28" fill="#111827"/>
+                <rect x="18" y="0" width="1" height="28" fill="#111827"/>
+                <rect x="21" y="0" width="3" height="28" fill="#111827"/>
+                <rect x="26" y="0" width="2" height="28" fill="#111827"/>
+                <rect x="30" y="0" width="5" height="28" fill="#111827"/>
+                <rect x="37" y="0" width="1" height="28" fill="#111827"/>
+                <rect x="40" y="0" width="3" height="28" fill="#111827"/>
+                <rect x="45" y="0" width="2" height="28" fill="#111827"/>
+                <rect x="49" y="0" width="4" height="28" fill="#111827"/>
+                <rect x="55" y="0" width="1" height="28" fill="#111827"/>
+                <rect x="58" y="0" width="2" height="28" fill="#111827"/>
+                <rect x="62" y="0" width="3" height="28" fill="#111827"/>
+                <rect x="67" y="0" width="1" height="28" fill="#111827"/>
+                <rect x="70" y="0" width="4" height="28" fill="#111827"/>
+                <rect x="76" y="0" width="2" height="28" fill="#111827"/>
+                <rect x="80" y="0" width="3" height="28" fill="#111827"/>
+                <rect x="85" y="0" width="1" height="28" fill="#111827"/>
+                <rect x="88" y="0" width="4" height="28" fill="#111827"/>
+                <rect x="94" y="0" width="2" height="28" fill="#111827"/>
+                <rect x="98" y="0" width="3" height="28" fill="#111827"/>
+                <rect x="103" y="0" width="1" height="28" fill="#111827"/>
+                <rect x="106" y="0" width="5" height="28" fill="#111827"/>
+                <rect x="113" y="0" width="2" height="28" fill="#111827"/>
+                <rect x="117" y="0" width="1" height="28" fill="#111827"/>
+                <rect x="120" y="0" width="3" height="28" fill="#111827"/>
+                <rect x="125" y="0" width="4" height="28" fill="#111827"/>
+                <rect x="131" y="0" width="1" height="28" fill="#111827"/>
+                <rect x="134" y="0" width="3" height="28" fill="#111827"/>
+                <rect x="139" y="0" width="2" height="28" fill="#111827"/>
+                <rect x="143" y="0" width="4" height="28" fill="#111827"/>
+                <rect x="149" y="0" width="1" height="28" fill="#111827"/>
+                <rect x="152" y="0" width="3" height="28" fill="#111827"/>
+                <rect x="157" y="0" width="2" height="28" fill="#111827"/>
+                <rect x="161" y="0" width="5" height="28" fill="#111827"/>
+                <rect x="168" y="0" width="2" height="28" fill="#111827"/>
+                <rect x="172" y="0" width="3" height="28" fill="#111827"/>
+                <rect x="177" y="0" width="3" height="28" fill="#111827"/>
+              </svg>
+              <span style="font-family: var(--font-mono); font-size: 0.62rem; color: #1e293b; font-weight: 700;">*{{ card.card_no }}*</span>
+            </div>
+            <div style="font-size: 0.65rem; color: #e2e8f0; font-weight: 600;">
+              🏛️ Official Seal
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function toggleCardFlip() {
+  const card = document.getElementById('interactiveCard');
+  if (card) {
+    card.classList.toggle('flipped');
+  }
+}
+</script>
+{% endblock %}
