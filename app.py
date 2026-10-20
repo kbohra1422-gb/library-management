@@ -1399,6 +1399,33 @@ def analytics_page():
     member_types = [r["member_type"] for r in mem_rows]
     member_counts = [r["count"] for r in mem_rows]
 
+    # Most popular borrowed books
+    popular_rows = conn.execute("""
+        SELECT b.id, b.title, b.author, b.category, b.icon, b.available_copies, b.total_copies,
+               COUNT(br.id) as borrow_count
+        FROM books b
+        JOIN borrow_records br ON b.id = br.book_id
+        GROUP BY b.id
+        ORDER BY borrow_count DESC, b.title ASC
+        LIMIT 6
+    """).fetchall()
+    popular_books = [dict(r) for r in popular_rows]
+
+    # Key circulation health statistics
+    total_loans = conn.execute("SELECT COUNT(*) FROM borrow_records").fetchone()[0]
+    returned_loans = conn.execute("SELECT COUNT(*) FROM borrow_records WHERE status = 'Returned'").fetchone()[0]
+    active_loans = conn.execute("SELECT COUNT(*) FROM borrow_records WHERE status = 'Issued'").fetchone()[0]
+    total_fines_accrued = conn.execute("SELECT COALESCE(SUM(fine_amount), 0.0) FROM borrow_records").fetchone()[0]
+    return_rate = round((returned_loans / total_loans * 100), 1) if total_loans > 0 else 100.0
+
+    circulation_summary = {
+        "total_loans": total_loans,
+        "returned_loans": returned_loans,
+        "active_loans": active_loans,
+        "return_rate": return_rate,
+        "total_fines": total_fines_accrued
+    }
+
     conn.close()
 
     return render_template(
@@ -1406,7 +1433,10 @@ def analytics_page():
         categories_json=json.dumps(categories),
         cat_counts_json=json.dumps(category_counts),
         status_json=json.dumps({"Available": total_avail, "Borrowed": total_borrowed}),
-        members_json=json.dumps({"labels": member_types, "data": member_counts})
+        members_json=json.dumps({"labels": member_types, "data": member_counts}),
+        popular_books=popular_books,
+        circulation_summary=circulation_summary,
+        active_page="analytics"
     )
 
 
@@ -2084,6 +2114,42 @@ def api_members_list():
         "status": "success",
         "count": len(members),
         "data": [dict(m) for m in members]
+    })
+
+
+@app.route("/api/v1/circulation", methods=["GET"])
+def api_circulation_summary():
+    """Returns circulation health metrics and popular books in JSON format."""
+    conn = get_db_connection()
+    total_loans = conn.execute("SELECT COUNT(*) FROM borrow_records").fetchone()[0]
+    active_loans = conn.execute("SELECT COUNT(*) FROM borrow_records WHERE status = 'Issued'").fetchone()[0]
+    returned_loans = conn.execute("SELECT COUNT(*) FROM borrow_records WHERE status = 'Returned'").fetchone()[0]
+    overdue_loans = conn.execute("SELECT COUNT(*) FROM borrow_records WHERE status = 'Issued' AND date(due_date) < date('now')").fetchone()[0]
+    total_fines = conn.execute("SELECT COALESCE(SUM(fine_amount), 0.0) FROM borrow_records").fetchone()[0]
+    return_rate = round((returned_loans / total_loans * 100), 1) if total_loans > 0 else 100.0
+
+    popular_rows = conn.execute("""
+        SELECT b.id, b.title, b.author, b.category, COUNT(br.id) as borrow_count
+        FROM books b
+        JOIN borrow_records br ON b.id = br.book_id
+        GROUP BY b.id
+        ORDER BY borrow_count DESC, b.title ASC
+        LIMIT 10
+    """).fetchall()
+    popular_books = [dict(r) for r in popular_rows]
+    conn.close()
+
+    return jsonify({
+        "status": "success",
+        "data": {
+            "total_loans": total_loans,
+            "active_loans": active_loans,
+            "returned_loans": returned_loans,
+            "overdue_loans": overdue_loans,
+            "return_rate": return_rate,
+            "total_fines_settled": total_fines,
+            "top_circulated_books": popular_books
+        }
     })
 
 

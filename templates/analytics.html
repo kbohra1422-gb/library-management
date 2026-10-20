@@ -20,6 +20,42 @@
     </p>
   </div>
 
+  <!-- Circulation Velocity & Health Summary -->
+  <div class="stats-grid" style="margin-bottom: 2rem;">
+    <div class="stat-card">
+      <div class="stat-header">
+        <span class="stat-title">Circulation Volume</span>
+        <div class="stat-icon">🔄</div>
+      </div>
+      <div class="stat-value">{{ circulation_summary.total_loans if circulation_summary else 0 }}</div>
+      <div class="stat-subtext">All-time loan transactions</div>
+    </div>
+    <div class="stat-card success">
+      <div class="stat-header">
+        <span class="stat-title">Collection Return Rate</span>
+        <div class="stat-icon">📈</div>
+      </div>
+      <div class="stat-value" style="color: var(--status-success);">{{ circulation_summary.return_rate if circulation_summary else 100.0 }}%</div>
+      <div class="stat-subtext">{{ circulation_summary.returned_loans if circulation_summary else 0 }} returned items</div>
+    </div>
+    <div class="stat-card warning">
+      <div class="stat-header">
+        <span class="stat-title">Currently Circulating</span>
+        <div class="stat-icon">⏳</div>
+      </div>
+      <div class="stat-value" style="color: var(--status-warning);">{{ circulation_summary.active_loans if circulation_summary else 0 }}</div>
+      <div class="stat-subtext">Active loans in member hands</div>
+    </div>
+    <div class="stat-card info">
+      <div class="stat-header">
+        <span class="stat-title">Cumulative Late Fees</span>
+        <div class="stat-icon">💰</div>
+      </div>
+      <div class="stat-value" style="color: var(--status-info);">₹{{ "%.2f"|format(circulation_summary.total_fines if circulation_summary else 0.0) }}</div>
+      <div class="stat-subtext">Overdue fine collections</div>
+    </div>
+  </div>
+
   <!-- Charts Grid -->
   <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
 
@@ -102,6 +138,65 @@
       </div>
     </div>
 
+  </div>
+
+  <!-- Popular Books Circulation Leaderboard -->
+  <div class="card" style="padding: 0; overflow: hidden; margin-bottom: 2rem;">
+    <div class="card-header" style="padding: 1.25rem 1.5rem; margin-bottom: 0;">
+      <div>
+        <h2 class="card-title" style="font-size: 1.15rem;"><span>🔥</span> Top Circulated Books Leaderboard</h2>
+        <p class="card-subtitle">Highest demand titles ranked by patron checkout frequency</p>
+      </div>
+    </div>
+
+    <div class="table-responsive">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th style="width: 70px;">Rank</th>
+            <th>Title & Author</th>
+            <th>Category</th>
+            <th>Inventory Stock</th>
+            <th style="text-align: right;">Circulation Velocity</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if not popular_books or popular_books|length == 0 %}
+          <tr>
+            <td colspan="5" style="text-align: center; padding: 2.5rem; color: var(--text-muted);">
+              No circulation checkout data recorded yet.
+            </td>
+          </tr>
+          {% else %}
+          {% for b in popular_books %}
+          <tr>
+            <td>
+              <span class="badge {% if loop.index == 1 %}badge-warning{% elif loop.index == 2 %}badge-info{% elif loop.index == 3 %}badge-success{% else %}badge-neutral{% endif %}" style="font-weight: 800; font-size: 0.85rem;">
+                #{{ loop.index }}
+              </span>
+            </td>
+            <td>
+              <div style="display: flex; align-items: center; gap: 0.65rem;">
+                <span style="font-size: 1.35rem;">{{ b.icon or get_book_icon(b.title, b.category) }}</span>
+                <div>
+                  <div style="font-weight: 700;">{{ b.title }}</div>
+                  <div style="font-size: 0.8rem; color: var(--text-muted);">by {{ b.author }}</div>
+                </div>
+              </div>
+            </td>
+            <td><span class="badge badge-neutral">{{ b.category }}</span></td>
+            <td>{{ b.available_copies or 0 }} / {{ b.total_copies or 1 }} copies available</td>
+            <td style="text-align: right;">
+              <span class="badge badge-primary" style="font-size: 0.85rem; font-weight: 700; padding: 0.25rem 0.65rem;">
+                {{ b.borrow_count }} checkout{{ 's' if b.borrow_count != 1 else '' }}
+              </span>
+            </td>
+          </tr>
+          {% endfor %}
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
   </div>
 
 </div>
