@@ -745,7 +745,11 @@ def edit_book(id):
 
         curr_avail = book["available_copies"] if book["available_copies"] is not None else 1
         diff = total_copies - (book["total_copies"] or 1)
-        new_avail = max(0, curr_avail + diff)
+        new_avail = min(total_copies, max(0, curr_avail + diff))
+        if new_avail == 0:
+            status = "Borrowed"
+        elif status == "Borrowed" and new_avail == total_copies:
+            status = "Available"
 
         if title and author and category:
             conn.execute(
@@ -811,12 +815,31 @@ def delete_book(id):
     conn = get_db_connection()
     book = conn.execute("SELECT * FROM books WHERE id = ?", (id,)).fetchone()
 
-    if book:
-        conn.execute("DELETE FROM books WHERE id = ?", (id,))
-        conn.commit()
-        flash(f'Book "{book["title"]}" deleted successfully!', "warning")
+    if not book:
+        conn.close()
+        flash("Book record not found.", "danger")
+        return redirect(url_for("books_catalog"))
 
+    # Safeguard against deleting books with active patron loans
+    active_loans = conn.execute(
+        "SELECT COUNT(*) FROM borrow_records WHERE book_id = ? AND status = 'Issued'",
+        (id,)
+    ).fetchone()[0]
+
+    if active_loans > 0:
+        conn.close()
+        loan_label = "1 active loan" if active_loans == 1 else f"{active_loans} active loans"
+        flash(f'Cannot delete "{book["title"]}": There are currently {loan_label} checked out by patrons. Please process returns first.', "danger")
+        return redirect(url_for("books_catalog"))
+
+    # Clean up associated holds, reviews, and wishlist records
+    conn.execute("DELETE FROM reservations WHERE book_id = ?", (id,))
+    conn.execute("DELETE FROM reviews WHERE book_id = ?", (id,))
+    conn.execute("DELETE FROM wishlist WHERE book_id = ?", (id,))
+    conn.execute("DELETE FROM books WHERE id = ?", (id,))
+    conn.commit()
     conn.close()
+    flash(f'Book "{book["title"]}" deleted successfully!', "warning")
     return redirect(url_for("books_catalog"))
 
 
@@ -993,11 +1016,29 @@ def edit_member(id):
 def delete_member(id):
     conn = get_db_connection()
     member = conn.execute("SELECT * FROM members WHERE id = ?", (id,)).fetchone()
-    if member:
-        conn.execute("DELETE FROM members WHERE id = ?", (id,))
-        conn.commit()
-        flash(f'Member "{member["name"]}" deleted.', "warning")
+    if not member:
+        conn.close()
+        flash("Member record not found.", "danger")
+        return redirect(url_for("members_page"))
+
+    # Safeguard against deleting members with active unreturned loans
+    active_loans = conn.execute(
+        "SELECT COUNT(*) FROM borrow_records WHERE member_id = ? AND status = 'Issued'",
+        (id,)
+    ).fetchone()[0]
+
+    if active_loans > 0:
+        conn.close()
+        loan_label = "1 active book" if active_loans == 1 else f"{active_loans} active books"
+        flash(f'Cannot delete member "{member["name"]}": This patron currently has {loan_label} checked out. Please process all returns before removing the member.', "danger")
+        return redirect(url_for("members_page"))
+
+    # Cancel any active hold reservations for this member
+    conn.execute("UPDATE reservations SET status = 'Cancelled' WHERE member_id = ? AND status IN ('Pending', 'Ready')", (id,))
+    conn.execute("DELETE FROM members WHERE id = ?", (id,))
+    conn.commit()
     conn.close()
+    flash(f'Member "{member["name"]}" deleted successfully.', "warning")
     return redirect(url_for("members_page"))
 
 

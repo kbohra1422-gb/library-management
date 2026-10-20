@@ -82,6 +82,10 @@ def init_db():
         cursor.execute("ALTER TABLE books ADD COLUMN total_copies INTEGER DEFAULT 1")
     if "available_copies" not in existing_cols:
         cursor.execute("ALTER TABLE books ADD COLUMN available_copies INTEGER DEFAULT 1")
+    if "pdf_url" not in existing_cols:
+        cursor.execute("ALTER TABLE books ADD COLUMN pdf_url TEXT")
+    if "icon" not in existing_cols:
+        cursor.execute("ALTER TABLE books ADD COLUMN icon TEXT")
     if "created_at" not in existing_cols:
         cursor.execute("ALTER TABLE books ADD COLUMN created_at TIMESTAMP")
     cursor.execute("UPDATE books SET created_at = CURRENT_TIMESTAMP WHERE created_at IS NULL")
@@ -553,9 +557,14 @@ Key Desktop Features:
             return
 
         conn = get_db_connection()
+        book_icon = get_book_icon(title, category)
+        avail_copies = 1 if status == "Available" else 0
         conn.execute(
-            "INSERT INTO books (title, author, category, status) VALUES (?, ?, ?, ?)",
-            (title, author, category, status)
+            """
+            INSERT INTO books (title, author, category, status, total_copies, available_copies, icon)
+            VALUES (?, ?, ?, ?, 1, ?, ?)
+            """,
+            (title, author, category, status, avail_copies, book_icon)
         )
         conn.commit()
         conn.close()
@@ -581,10 +590,17 @@ Key Desktop Features:
         book = conn.execute("SELECT * FROM books WHERE id = ?", (book_id,)).fetchone()
 
         if book:
-            new_status = "Borrowed" if book["status"] == "Available" else "Available"
-            conn.execute("UPDATE books SET status = ? WHERE id = ?", (new_status, book_id))
+            total_c = book["total_copies"] or 1
+            if book["status"] == "Available":
+                new_status = "Borrowed"
+                new_avail = max(0, (book["available_copies"] or 1) - 1)
+            else:
+                new_status = "Available"
+                new_avail = min(total_c, (book["available_copies"] or 0) + 1)
+
+            conn.execute("UPDATE books SET status = ?, available_copies = ? WHERE id = ?", (new_status, new_avail, book_id))
             conn.commit()
-            messagebox.showinfo("Status Updated", f'Status for "{book["title"]}" changed to {new_status}.')
+            messagebox.showinfo("Status Updated", f'Status for "{book["title"]}" changed to {new_status} (Available: {new_avail}/{total_c}).')
 
         conn.close()
         self.refresh_dashboard()
@@ -600,8 +616,25 @@ Key Desktop Features:
         book = conn.execute("SELECT * FROM books WHERE id = ?", (book_id,)).fetchone()
 
         if book:
+            # Safeguard against deleting books with active patron loans
+            active_loans = conn.execute(
+                "SELECT COUNT(*) FROM borrow_records WHERE book_id = ? AND status = 'Issued'",
+                (book_id,)
+            ).fetchone()[0]
+
+            if active_loans > 0:
+                conn.close()
+                messagebox.showerror(
+                    "Cannot Delete Book",
+                    f'Cannot delete "{book["title"]}": There are currently {active_loans} active loan(s) checked out by patrons.\n\nPlease process all returns before deleting this title.'
+                )
+                return
+
             confirm = messagebox.askyesno("Confirm Delete", f'Are you sure you want to delete "{book["title"]}"?')
             if confirm:
+                conn.execute("DELETE FROM reservations WHERE book_id = ?", (book_id,))
+                conn.execute("DELETE FROM reviews WHERE book_id = ?", (book_id,))
+                conn.execute("DELETE FROM wishlist WHERE book_id = ?", (book_id,))
                 conn.execute("DELETE FROM books WHERE id = ?", (book_id,))
                 conn.commit()
                 messagebox.showinfo("Deleted", f'Book "{book["title"]}" removed successfully.')
@@ -720,9 +753,20 @@ Key Desktop Features:
                 return
 
             db_conn = get_db_connection()
+            new_icon = get_book_icon(new_title, new_category)
+            cur_book = db_conn.execute("SELECT * FROM books WHERE id = ?", (book_id,)).fetchone()
+            tot_c = cur_book["total_copies"] or 1
+            cur_avail = cur_book["available_copies"] if cur_book["available_copies"] is not None else 1
+            if new_status_val == "Borrowed" and cur_avail > 0:
+                new_avail = 0
+            elif new_status_val == "Available" and cur_avail == 0:
+                new_avail = 1
+            else:
+                new_avail = min(tot_c, max(0, cur_avail))
+
             db_conn.execute(
-                "UPDATE books SET title = ?, author = ?, category = ?, status = ? WHERE id = ?",
-                (new_title, new_author, new_category, new_status_val, book_id)
+                "UPDATE books SET title = ?, author = ?, category = ?, status = ?, available_copies = ?, icon = ? WHERE id = ?",
+                (new_title, new_author, new_category, new_status_val, new_avail, new_icon, book_id)
             )
             db_conn.commit()
             db_conn.close()
